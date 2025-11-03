@@ -38,7 +38,8 @@ class _NavBarState extends State<NavBar> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              // PERBAIKAN: Mengganti 'withValues' menjadi 'withOpacity'
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -73,7 +74,8 @@ class _NavBarState extends State<NavBar> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateMenu(context),
-        backgroundColor: const Color(0xFF5B4AE2),
+        // PERUBAHAN: Warna disamakan dengan homepage
+        backgroundColor: const Color(0xFF3B2C8D),
         child: const Icon(Icons.add, size: 32, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -83,7 +85,8 @@ class _NavBarState extends State<NavBar> {
   void _showCreateMenu(BuildContext context) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      // PERBAIKAN: Mengganti 'withValues' menjadi 'withOpacity'
+      barrierColor: Colors.black.withOpacity(0.3),
       builder: (BuildContext context) {
         return Stack(
           children: [
@@ -95,11 +98,13 @@ class _NavBarState extends State<NavBar> {
                 child: Container(
                   width: 200,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5B4AE2),
+                    // PERUBAHAN: Warna disamakan dengan homepage
+                    color: const Color(0xFF3B2C8D),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        // PERBAIKAN: Mengganti 'withValues' menjadi 'withOpacity'
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -133,6 +138,7 @@ class _NavBarState extends State<NavBar> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   height: 1.2,
+                                  fontFamily: 'Poppins', // Menambahkan font
                                 ),
                               ),
                               const Spacer(),
@@ -148,7 +154,8 @@ class _NavBarState extends State<NavBar> {
                       Container(
                         height: 1,
                         margin: const EdgeInsets.symmetric(horizontal: 20),
-                        color: Colors.white.withValues(alpha: 0.3),
+                        // PERBAIKAN: Mengganti 'withValues' menjadi 'withOpacity'
+                        color: Colors.white.withOpacity(0.3),
                       ),
                       InkWell(
                         onTap: () {
@@ -175,6 +182,7 @@ class _NavBarState extends State<NavBar> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   height: 1.2,
+                                  fontFamily: 'Poppins', // Menambahkan font
                                 ),
                               ),
                               const Spacer(),
@@ -206,12 +214,11 @@ class _NavBarState extends State<NavBar> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Icon(
           isSelected ? activeIcon : icon,
-          color: isSelected ? const Color(0xFF5B4AE2) : Colors.grey,
+          // PERUBAHAN: Warna disamakan dengan homepage
+          color: isSelected ? const Color(0xFF3B2C8D) : Colors.grey,
           size: 28,
         ),
       ),
     );
   }
 }
-
-// CreatePage tidak digunakan lagi karena diganti dengan popup menu
