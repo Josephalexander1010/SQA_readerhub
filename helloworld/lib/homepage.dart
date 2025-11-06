@@ -1,25 +1,153 @@
+// lib/homepage.dart (Perbaikan textSkip)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'notificationpage.dart'; // <-- IMPORT HALAMAN BARU
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'notificationpage.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final GlobalKey fabKey;
+  final VoidCallback onShowStep4;
+
+  const HomePage({
+    super.key,
+    required this.fabKey,
+    required this.onShowStep4,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  // Track like and save states for each feed item
   final Map<int, bool> _likedFeeds = {};
   final Map<int, bool> _savedFeeds = {};
-
-  // Daftar URL Gambar untuk Feed
   final List<String> _feedImageUrls = [
-    'https://randomuser.me/api/portraits/men/32.jpg', // John Doe
-    'https://randomuser.me/api/portraits/women/44.jpg', // Jane Smith
-    'https://randomuser.me/api/portraits/men/46.jpg', // Mike Johnson
+    'https://randomuser.me/api/portraits/men/32.jpg',
+    'https://randomuser.me/api/portraits/women/44.jpg',
+    'https://randomuser.me/api/portraits/men/46.jpg',
   ];
+
+  late TutorialCoachMark _tutorialSteps2and3;
+
+  final GlobalKey _myChannelsKey = GlobalKey();
+  final GlobalKey _firstFeedItemKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndShowWalkthrough();
+    });
+  }
+
+  void _checkAndShowWalkthrough() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasCompleted = prefs.getBool('walkthrough_completed') ?? false;
+
+    if (!hasCompleted && mounted) {
+      _showWalkthroughStep1_Dialog();
+    }
+  }
+
+  void _showWalkthroughStep1_Dialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext dialogContext) {
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black.withAlpha((255 * 0.7).round()),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildPopupCard(
+                step: "Step 1/5",
+                title: "Welcome to Reader-HUB!",
+                content:
+                    "Hello There. The one place for all your favorite book and fanfic discussions. Let us give you a quick tour.",
+                onContinue: () {
+                  Navigator.of(dialogContext).pop();
+                  _showWalkthroughSteps2and3();
+                },
+                onSkip: () {
+                  Navigator.of(dialogContext).pop();
+                  _markWalkthroughAsDone();
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showWalkthroughSteps2and3() {
+    _tutorialSteps2and3 = TutorialCoachMark(
+      targets: [
+        TargetFocus(
+          identify: "my-channels-key",
+          keyTarget: _myChannelsKey,
+          shape: ShapeLightFocus.RRect,
+          radius: 8,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder: (context, controller) {
+                return _buildPopupCard(
+                  step: "Step 2/5",
+                  title: "Find Your Communities in Channels",
+                  content:
+                      "Think of a Channel as a home for any topic or fandom. Inside, you'll find more specific discussion spaces called sub-channels.",
+                  onContinue: () => controller.next(),
+                  onSkip: () => controller.skip(),
+                );
+              },
+            ),
+          ],
+        ),
+        TargetFocus(
+          identify: "first-feed-item-key",
+          keyTarget: _firstFeedItemKey,
+          shape: ShapeLightFocus.RRect,
+          radius: 8,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              builder: (context, controller) {
+                return _buildPopupCard(
+                  step: "Step 3/5",
+                  title: "And The Most Important, This Is Your Home Feed",
+                  content:
+                      "Here, you'll see the latest posts from all the Channels you follow. The more Channels you join, the livelier your feed becomes!",
+                  onContinue: () => controller.next(),
+                  onSkip: () => controller.skip(),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      colorShadow: Colors.black.withAlpha((255 * 0.7).round()),
+      // =======================================================
+      // PERBAIKAN DI SINI: Menghapus tombol "SKIP" di pojok
+      textSkip: "",
+      // =======================================================
+      onFinish: () {
+        widget.onShowStep4();
+      },
+      onSkip: () {
+        _markWalkthroughAsDone();
+        return true;
+      },
+    );
+    _tutorialSteps2and3.show(context: context);
+  }
+
+  void _markWalkthroughAsDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('walkthrough_completed', true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +162,32 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 10),
-                    _buildHeader(), // Header sekarang di dalam
-                    // PERUBAHAN: Jarak didekatkan (dari 20 ke 10)
+                    _buildHeader(),
                     const SizedBox(height: 10),
-                    _buildMyChannelsSection(),
+                    Container(
+                      key: _myChannelsKey,
+                      child: _buildMyChannelsSection(),
+                    ),
                     const SizedBox(height: 24),
-                    _buildChannelFeedHeader(),
-                    _buildFeedList(),
+                    Column(
+                      key: _firstFeedItemKey,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildChannelFeedHeader(),
+                        _buildFeedItem(
+                          id: 0,
+                          username: 'John Doe',
+                          imageUrl: _feedImageUrls[0],
+                          channel: 'Reading Club',
+                          subtitle: 'Read',
+                          time: '1m',
+                          content: 'What\'s happening?',
+                          comments: 95,
+                          likes: 1300,
+                        ),
+                      ],
+                    ),
+                    _buildFeedListRemaining(),
                   ],
                 ),
               ),
@@ -51,6 +198,37 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildFeedListRemaining() {
+    return Column(
+      children: [
+        _buildFeedItem(
+          id: 1,
+          username: 'Jane Smith',
+          imageUrl: _feedImageUrls[1],
+          channel: 'Harry x Hermoi..',
+          subtitle: 'Story of Greatn..',
+          time: '1m',
+          content: 'What\'s happening?',
+          comments: 95,
+          likes: 1300,
+        ),
+        _buildFeedItem(
+          id: 2,
+          username: 'Mike Johnson',
+          imageUrl: _feedImageUrls[2],
+          channel: 'Reading FC',
+          subtitle: 'Story Of Greatn..',
+          time: '1m',
+          content: 'What\'s happening?',
+          comments: 95,
+          likes: 1300,
+          hasImage: true,
+        ),
+      ],
+    );
+  }
+
+  // ... (Sisa kode _buildHeader, _buildMyChannelsSection, dll. TETAP SAMA) ...
   Widget _buildHeader() {
     return Container(
       color: const Color(0xFFF8F9FA),
@@ -164,47 +342,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildFeedList() {
-    return Column(
-      children: [
-        _buildFeedItem(
-          id: 0,
-          username: 'John Doe',
-          imageUrl: _feedImageUrls[0],
-          channel: 'Reading Club',
-          subtitle: 'Read',
-          time: '1m',
-          content: 'What\'s happening?',
-          comments: 95,
-          likes: 1300,
-        ),
-        _buildFeedItem(
-          id: 1,
-          username: 'Jane Smith',
-          imageUrl: _feedImageUrls[1],
-          channel: 'Harry x Hermoi..',
-          subtitle: 'Story of Greatn..',
-          time: '1m',
-          content: 'What\'s happening?',
-          comments: 95,
-          likes: 1300,
-        ),
-        _buildFeedItem(
-          id: 2,
-          username: 'Mike Johnson',
-          imageUrl: _feedImageUrls[2],
-          channel: 'Reading FC',
-          subtitle: 'Story Of Greatn..',
-          time: '1m',
-          content: 'What\'s happening?',
-          comments: 95,
-          likes: 1300,
-          hasImage: true,
-        ),
-      ],
-    );
-  }
-
   Widget _buildAvatar(String imageUrl, {double radius = 20}) {
     return CircleAvatar(
       radius: radius,
@@ -231,7 +368,7 @@ class _HomePageState extends State<HomePage> {
                 strokeWidth: 2,
                 value: loadingProgress.expectedTotalBytes != null
                     ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
+                        loadingProgress.expectedTotalBytes!
                     : null,
               ),
             );
@@ -337,7 +474,7 @@ class _HomePageState extends State<HomePage> {
               child: Center(
                 child: Icon(
                   Icons.image_outlined,
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withAlpha((255 * 0.3).round()),
                   size: 60,
                 ),
               ),
@@ -425,7 +562,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.transparent,
       builder: (context) => CommentsSheet(
         feedId: feedId,
-        buildAvatar: _buildAvatar, // Meneruskan fungsi buildAvatar
+        buildAvatar: _buildAvatar,
       ),
     );
   }
@@ -502,9 +639,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 // =====================================================================
-// CommentsSheet Class
+// Sisa class (CommentsSheet, Comment, _buildPopupCard) TETAP SAMA
 // =====================================================================
-
 class CommentsSheet extends StatefulWidget {
   final int feedId;
   final Widget Function(String, {double radius}) buildAvatar;
@@ -568,7 +704,6 @@ class _CommentsSheetState extends State<CommentsSheet> {
       ),
       child: Column(
         children: [
-          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12, bottom: 8),
             width: 40,
@@ -760,10 +895,6 @@ class _CommentsSheetState extends State<CommentsSheet> {
   }
 }
 
-// =====================================================================
-// Comment Model
-// =====================================================================
-
 class Comment {
   final int id;
   final String username;
@@ -781,5 +912,109 @@ class Comment {
     required this.content,
     required this.likes,
     required this.replies,
+  });
+}
+
+Widget _buildPopupCard({
+  required String step,
+  required String title,
+  required String content,
+  required VoidCallback onContinue,
+  required VoidCallback? onSkip,
+  String continueText = "Continue",
+}) {
+  return Builder(builder: (context) {
+    // Dapatkan tinggi layar
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        // Padding internal yang lebih kecil
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        // Batasi tinggi popup agar bisa di-scroll jika konten terlalu panjang
+        constraints: BoxConstraints(
+          maxWidth: 500, // Lebar maks
+          maxHeight: screenHeight * 0.7, // Maks 70% tinggi layar
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        // GANTI Column -> ListView agar bisa scroll jika overflow
+        child: ListView(
+          shrinkWrap: true, // Ambil ruang secukupnya
+          children: [
+            Text(
+              step,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                color: Color(0xFF3B2C8D),
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              content,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: Colors.grey[700],
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Tombol tetap menggunakan Wrap
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8.0,
+              runSpacing: 4.0,
+              children: [
+                if (onSkip != null)
+                  TextButton(
+                    onPressed: onSkip,
+                    child: const Text(
+                      "Skip",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ElevatedButton(
+                  onPressed: onContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B2C8D),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    continueText,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   });
 }
