@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'notificationpage.dart';
+import 'specific_channel_page.dart';
 
 class HomePage extends StatefulWidget {
   final GlobalKey fabKey;
@@ -26,6 +27,21 @@ class _HomePageState extends State<HomePage> {
     'https://randomuser.me/api/portraits/men/32.jpg',
     'https://randomuser.me/api/portraits/women/44.jpg',
     'https://randomuser.me/api/portraits/men/46.jpg',
+  ];
+
+  final List<Map<String, dynamic>> _featuredChannels = [
+    {
+      'name': 'Harry Potter',
+      'avatar':
+          'https://upload.wikimedia.org/wikipedia/en/d/d7/Harry_Potter_character_poster.jpg',
+      'description':
+          'Welcome to Hogwarts, young witch or wizard! 🪄 You\'ve just stepped into the Great Castle — a place where magic, friendship, and adventure await you at every turn. Here, you\'ll learn about the world of spellcasting, explore the secrets of the castle, and meet fellow students from all four houses.\n\nIn this channel, you\'ll find everything you need to get started: introductions, server guidelines, and a warm welcome from our staff and prefects. Take your time to look around, claim your house, and prepare for an unforgettable journey through the Wizarding World.',
+      'subChannels': const [
+        SubChannelInfo(name: 'General', unreadCount: 67),
+        SubChannelInfo(name: 'Harry x Hermoine'),
+        SubChannelInfo(name: 'Music'),
+      ],
+    },
   ];
 
   late TutorialCoachMark _tutorialSteps2and3;
@@ -278,11 +294,69 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           SizedBox(
-            height: 90,
+            height: 110,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [_buildLoadMoreCircle()],
+              children: [
+                ..._featuredChannels
+                    .map((channel) => _buildChannelCircle(channel)),
+                _buildLoadMoreCircle(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChannelCircle(Map<String, dynamic> channel) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => _openSpecificChannel(channel),
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((255 * 0.1).round()),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  channel['avatar'] as String,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: Icon(Icons.person, color: Colors.grey[700]),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 70,
+            child: Text(
+              channel['name'] as String,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF3B2C8D),
+                fontFamily: 'Poppins',
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -314,6 +388,24 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openSpecificChannel(Map<String, dynamic> channel) {
+    final subChannels = List<SubChannelInfo>.from(
+      channel['subChannels'] as List<SubChannelInfo>,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SpecificChannelPage(
+          title: channel['name'] as String,
+          description: channel['description'] as String,
+          avatarUrl: channel['avatar'] as String,
+          initialSubChannels: subChannels,
+        ),
       ),
     );
   }
