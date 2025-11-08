@@ -1,170 +1,273 @@
 import 'package:flutter/material.dart';
 
-class CreateFeedPage extends StatelessWidget {
+class CreateFeedPage extends StatefulWidget {
   const CreateFeedPage({super.key});
+
+  @override
+  State<CreateFeedPage> createState() => _CreateFeedPageState();
+}
+
+class _CreateFeedPageState extends State<CreateFeedPage> {
+  final TextEditingController _captionController = TextEditingController();
+  String? selectedChannel;
+  String? selectedSubChannel;
+
+  @override
+  void dispose() {
+    _captionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF5B4AE2),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Create Feed',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Handle post
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Feed posted successfully!'),
-                  backgroundColor: Color(0xFF5B4AE2),
-                ),
-              );
-              Navigator.pop(context);
-            },
-            child: const Text(
-              'Post',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User Info
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey[300],
-                  child: const Icon(Icons.person, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '@username',
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text(
+                      'Cancel',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 15,
+                        color: Colors.black,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
-                    Text(
-                      'Post to channel',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
                     ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB8B3D4),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Post',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
+
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Select Your Channel
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        children: [
+                          TextSpan(text: 'Select Your Channel'),
+                          TextSpan(
+                            text: '*',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          hint: const Text(
+                            'Choose Here',
+                            style: TextStyle(
+                              color: Color(0xFFA0A0A0),
+                              fontSize: 15,
+                            ),
+                          ),
+                          value: selectedChannel,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                          items: ['Channel 1', 'Channel 2', 'Channel 3']
+                              .map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                value,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedChannel = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Select Your Sub-Channel
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        children: [
+                          TextSpan(text: 'Select Your Sub-Channel'),
+                          TextSpan(
+                            text: '*',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          hint: const Text(
+                            'Choose Here',
+                            style: TextStyle(
+                              color: Color(0xFFA0A0A0),
+                              fontSize: 15,
+                            ),
+                          ),
+                          value: selectedSubChannel,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                          items: [
+                            'Sub-Channel 1',
+                            'Sub-Channel 2',
+                            'Sub-Channel 3'
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                value,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedSubChannel = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Caption
+                    RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        children: [
+                          TextSpan(text: 'Caption '),
+                          TextSpan(
+                            text: '(max 1000 character)',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE0E0E0)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _captionController,
+                        maxLength: 1000,
+                        maxLines: null,
+                        expands: true,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: const TextStyle(fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Enter your Caption here',
+                          hintStyle: const TextStyle(
+                            color: Color(0xFFA0A0A0),
+                            fontSize: 15,
+                          ),
+                          counterText: '',
+                          contentPadding: const EdgeInsets.all(14),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Action Icons
+                    Row(
+                      children: [
+                        _buildIconButton(Icons.image_outlined),
+                        const SizedBox(width: 20),
+                        _buildIconButton(Icons.videocam_off_outlined),
+                        const SizedBox(width: 20),
+                        _buildIconButton(Icons.chat_bubble_outline),
+                        const SizedBox(width: 20),
+                        _buildIconButton(Icons.bookmark_border),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
                   ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Channel Selection
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.hub_outlined,
-                    color: Color(0xFF5B4AE2),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Select Channel',
-                    style: TextStyle(
-                      color: Color(0xFF5B4AE2),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Content Input
-            TextField(
-              maxLines: 8,
-              decoration: InputDecoration(
-                hintText: "What's happening?",
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 18),
-                border: InputBorder.none,
-              ),
-              style: const TextStyle(fontSize: 16),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Media Upload Options
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildMediaOption(
-                    Icons.image_outlined,
-                    'Add Image',
-                    () => print('Add Image'),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMediaOption(
-                    Icons.videocam_outlined,
-                    'Add Video',
-                    () => print('Add Video'),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMediaOption(
-                    Icons.link,
-                    'Add Link',
-                    () => print('Add Link'),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Poll Option
-            OutlinedButton.icon(
-              onPressed: () => print('Create Poll'),
-              icon: const Icon(Icons.poll_outlined),
-              label: const Text('Create Poll'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF5B4AE2),
-                side: const BorderSide(color: Color(0xFF5B4AE2)),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -174,20 +277,23 @@ class CreateFeedPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMediaOption(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF5B4AE2), size: 24),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16, color: Color(0xFF2D2D2D)),
-          ),
-          const Spacer(),
-          Icon(Icons.chevron_right, color: Colors.grey[400]),
-        ],
+  Widget _buildIconButton(IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        // Handle icon tap
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          size: 22,
+          color: Colors.black87,
+        ),
       ),
     );
   }

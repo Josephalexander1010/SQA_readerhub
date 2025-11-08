@@ -8,121 +8,200 @@ class CreateChannelPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B4AE2),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Create Channel',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF4A3F8F)),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Create Channel',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF4A3F8F),
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon
+            // Profile Picture Section
             Center(
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5B4AE2).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.hub_outlined,
-                  size: 50,
-                  color: Color(0xFF5B4AE2),
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFD9D9D9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Your\nChannel\nPFP',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4A3F8F),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 32),
 
             // Channel Name
-            const Text(
-              'Channel Name',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2D2D2D),
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                children: [
+                  TextSpan(text: 'Channel Name'),
+                  TextSpan(
+                    text: '*',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  TextSpan(
+                    text: ' (max 25 character)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
             TextField(
+              maxLength: 25,
               decoration: InputDecoration(
-                hintText: 'Enter channel name',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                hintText: 'Enter your Channel Name',
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
                 ),
+                counterText: '',
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD9D9D9),
+                    width: 1,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD9D9D9),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF4A3F8F),
+                    width: 1,
+                  ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Description
-            const Text(
-              'Description',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2D2D2D),
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                children: [
+                  TextSpan(text: 'Channel Description'),
+                  TextSpan(
+                    text: '*',
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  TextSpan(
+                    text: ' (max 700 character)',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
             TextField(
-              maxLines: 4,
+              maxLength: 700,
+              maxLines: 10,
               decoration: InputDecoration(
-                hintText: 'Describe your channel',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+                hintText: 'Enter your Channel Name',
+                hintStyle: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
                 ),
+                counterText: '',
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD9D9D9),
+                    width: 1,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFD9D9D9),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF4A3F8F),
+                    width: 1,
+                  ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Category
-            const Text(
-              'Category',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2D2D2D),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildCategoryChip('Books'),
-                _buildCategoryChip('Movies'),
-                _buildCategoryChip('Sports'),
-                _buildCategoryChip('Gaming'),
-                _buildCategoryChip('Music'),
-                _buildCategoryChip('Tech'),
-              ],
             ),
 
             const SizedBox(height: 40),
@@ -130,28 +209,32 @@ class CreateChannelPage extends StatelessWidget {
             // Create Button
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 48,
               child: ElevatedButton(
                 onPressed: () {
                   // Handle create channel
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Channel created successfully!'),
-                      backgroundColor: Color(0xFF5B4AE2),
+                      backgroundColor: Color(0xFF4A3F8F),
                     ),
                   );
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B4AE2),
+                  backgroundColor: const Color(0xFF4A3F8F),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(24),
                   ),
+                  elevation: 0,
                 ),
                 child: const Text(
-                  'Create Channel',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  'Create',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -164,12 +247,14 @@ class CreateChannelPage extends StatelessWidget {
   Widget _buildCategoryChip(String label) {
     return Chip(
       label: Text(label),
-      backgroundColor: const Color(0xFF5B4AE2).withValues(alpha: 0.1),
+      backgroundColor: const Color(0xFF4A3F8F).withValues(alpha: 0.1),
       labelStyle: const TextStyle(
-        color: Color(0xFF5B4AE2),
+        color: Color(0xFF4A3F8F),
         fontWeight: FontWeight.w500,
+        fontSize: 13,
       ),
       side: BorderSide.none,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     );
   }
 }
