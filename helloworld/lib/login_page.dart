@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'navbar.dart'; // ubah sesuai nama file tujuanmu
+import 'signup_page.dart';
+import 'navbar.dart';
+import 'forgot_password.dart'; // ensure this file exists (ForgotEmailPage)
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -170,9 +172,11 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Forgot Password clicked')),
+                                // NAVIGATE to Forgot Password flow
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const ForgotEmailPage(),
+                                  ),
                                 );
                               },
                               child: const Text(
@@ -215,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
 
                         const SizedBox(height: 30),
 
-                        // Sign Up link
+                        // Sign Up link (navigasi ke SignupPage)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -228,9 +232,10 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text('Sign Up tapped')),
+                                // Navigasi ke halaman SignupPage
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const SignupPage()),
                                 );
                               },
                               child: const Text(
