@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'navbar.dart'; // Import navbar yang sudah dibuat
+import 'navbar.dart';
+import 'splashscreen.dart'; // tambahin import splashscreen
 
 void main() {
   runApp(const MyApp());
@@ -12,12 +13,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Channel App',
-      debugShowCheckedModeBanner: false, // Hilangkan banner debug
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5B4AE2)),
         useMaterial3: true,
       ),
-      home: const NavBar(), // Langsung panggil NavBar sebagai home
+      // Tampilkan splash screen dulu saat app dibuka
+      home: const SplashScreen(),
     );
   }
 }
