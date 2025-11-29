@@ -135,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             );
                           },
                           icon: const Icon(Icons.settings,
-                              color: Colors.white, size: 24),
+                              color: Colors.white, size: 28),
                         ),
                       ],
                     ),

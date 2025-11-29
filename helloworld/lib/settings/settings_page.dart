@@ -5,8 +5,9 @@ import 'privacy_policy_page.dart';
 import 'about_page.dart';
 import 'saved_page.dart';
 import 'notifications_page.dart';
-import 'ads_info_page.dart';
 import 'account_settings_page.dart';
+import 'data_privacy_page.dart';
+import 'content_social_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -100,8 +101,9 @@ class SettingsPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AccountSettingsPage()),
-                              );
+                          MaterialPageRoute(
+                              builder: (context) => const AccountSettingsPage()),
+                        );
                       },
                       isFirst: true,
                     ),
@@ -109,14 +111,23 @@ class SettingsPage extends StatelessWidget {
                       icon: Icons.shield_outlined,
                       title: 'Data & Privacy',
                       onTap: () {
-                        print('Data & Privacy tapped');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const DataPrivacyPage()),
+                        );
                       },
                     ),
                     _buildListItem(
                       icon: Icons.lock_outline,
-                      title: 'Security and Account Access',
+                      title: 'Content and Social',
                       onTap: () {
-                        print('Security tapped');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const ContentSocialPage()),
+                        );
                       },
                       isLast: true,
                     ),
@@ -132,7 +143,7 @@ class SettingsPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => SavedPage()),
+                          MaterialPageRoute(builder: (context) => const SavedPage()),
                         );
                       },
                       isFirst: true,
@@ -141,9 +152,10 @@ class SettingsPage extends StatelessWidget {
                       icon: Icons.notifications_none,
                       title: 'Notifications',
                       onTap: () {
-                         Navigator.push(
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const NotificationsPage()),
+                          MaterialPageRoute(
+                              builder: (context) => const NotificationsPage()),
                         );
                       },
                       isLast: true,
@@ -154,18 +166,6 @@ class SettingsPage extends StatelessWidget {
                   _buildSectionTitle('Additional Resources'),
                   const SizedBox(height: 8),
                   _buildGroupedItems([
-                    _buildListItem(
-                      icon: Icons.info_outline,
-                      title: 'Ads Info',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AdsInfoPage()),
-                        );
-                      },
-                      isFirst: true,
-                    ),
-
                     // Privacy Policy -> NAVIGATES
                     _buildListItem(
                       icon: Icons.privacy_tip_outlined,
@@ -174,9 +174,10 @@ class SettingsPage extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => PrivacyPolicyPage()),
+                              builder: (context) => const PrivacyPolicyPage()),
                         );
                       },
+                      isFirst: true,
                     ),
 
                     // Terms of Service -> NAVIGATES
@@ -186,7 +187,7 @@ class SettingsPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => TermsPage()),
+                          MaterialPageRoute(builder: (context) => const TermsPage()),
                         );
                       },
                     ),
@@ -197,7 +198,7 @@ class SettingsPage extends StatelessWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => AboutPage()),
+                          MaterialPageRoute(builder: (context) => const AboutPage()),
                         );
                       },
                       isLast: true,

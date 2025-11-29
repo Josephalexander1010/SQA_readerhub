@@ -1,4 +1,3 @@
-// lib/settings/notifications_page.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,20 +8,23 @@ class NotificationsPage extends StatefulWidget {
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
+enum ReactionMode { all, direct, never }
+
 class _NotificationsPageState extends State<NotificationsPage> {
   static const String _kPushEnabledKey = 'notifications_push_enabled';
   static const String _kPersonalizedKey = 'notifications_personalized';
+  static const String _kReaderHubKey = 'notifications_reader_hub';
+  static const String _kMessageEveryKey = 'notifications_every_message';
+  static const String _kReactionKey = 'notifications_reaction_mode';
 
-  bool _pushEnabled = true;
-  bool _personalized = true;
+  bool _pushEnabled = true; // legacy - kept for backward compatibility
+  bool _personalized = true; // legacy
   bool _loading = true;
 
-  // simple mock notifications list (in real app load from backend)
-  List<_MockNotification> _notifications = [
-    _MockNotification(id: '1', title: 'Welcome to Reader-HUB!', body: 'Thanks for joining Reader-HUB — explore Channels to start conversations.'),
-    _MockNotification(id: '2', title: 'New reply in "Harry Potter"', body: 'Someone replied to your comment in the Harry Potter channel.'),
-    _MockNotification(id: '3', title: 'Channel Boost received', body: 'Your channel received a boost! Check it out.'),
-  ];
+  // New settings
+  bool _readerHub = true;
+  bool _notifyEveryMessage = false;
+  ReactionMode _reactionMode = ReactionMode.all;
 
   @override
   void initState() {
@@ -35,6 +37,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() {
       _pushEnabled = prefs.getBool(_kPushEnabledKey) ?? true;
       _personalized = prefs.getBool(_kPersonalizedKey) ?? true;
+      _readerHub = prefs.getBool(_kReaderHubKey) ?? true;
+      _notifyEveryMessage = prefs.getBool(_kMessageEveryKey) ?? false;
+
+      final r = prefs.getInt(_kReactionKey);
+      if (r != null) {
+        _reactionMode = ReactionMode.values[r.clamp(0, ReactionMode.values.length - 1)];
+      } else {
+        _reactionMode = ReactionMode.all;
+      }
+
       _loading = false;
     });
   }
@@ -53,36 +65,55 @@ class _NotificationsPageState extends State<NotificationsPage> {
     // TODO: update personalization preference on backend
   }
 
-  void _markAllRead() {
-    setState(() {
-      for (var n in _notifications) n.read = true;
-    });
+  Future<void> _setReaderHub(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kReaderHubKey, v);
+    setState(() => _readerHub = v);
+    // TODO: enable/disable in-app Reader Hub notifications
   }
 
-  void _toggleRead(String id) {
-    setState(() {
-      final n = _notifications.firstWhere((x) => x.id == id);
-      n.read = !n.read;
-    });
+  Future<void> _setNotifyEveryMessage(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kMessageEveryKey, v);
+    setState(() => _notifyEveryMessage = v);
+    // TODO: inform convo/message service about "notify every message" preference
+  }
+
+  Future<void> _setReactionMode(ReactionMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kReactionKey, mode.index);
+    setState(() => _reactionMode = mode);
+    // TODO: update reaction notification preference on backend
+  }
+
+  // Discord-like pill container
+  Widget _pill({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE3E5E8)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: child,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF2F3F5),
         body: SafeArea(child: Center(child: CircularProgressIndicator())),
       );
     }
 
-    final unreadCount = _notifications.where((n) => !n.read).length;
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF2F3F5),
       body: SafeArea(
         child: Column(
           children: [
-            // header
+            // header with gradient
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
@@ -102,100 +133,186 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   const SizedBox(width: 8),
                   const Text(
                     'Notifications',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  const Spacer(),
-                  if (unreadCount > 0)
-                    Text(
-                      '$unreadCount',
-                      style: const TextStyle(fontSize: 14, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                ],
-              ),
-            ),
-
-            // toggles
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                children: [
-                  _buildToggleRow(
-                    title: 'App notifications',
-                    subtitle: 'Receive general app notifications (push & in-app).',
-                    value: _pushEnabled,
-                    onChanged: _setPushEnabled,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildToggleRow(
-                    title: 'Personalized suggestions',
-                    subtitle: 'Receive suggestions and recommended content based on your activity.',
-                    value: _personalized,
-                    onChanged: _setPersonalized,
                   ),
                 ],
               ),
             ),
 
-            // actions row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _markAllRead,
-                    icon: const Icon(Icons.mark_email_read),
-                    label: const Text('Mark all read'),
-                  ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: () {
-                      // open notification settings in system? left as TODO
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Open system notification settings (TODO)')));
-                    },
-                    child: const Text('System settings'),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // notifications list
+            // content
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                itemCount: _notifications.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final n = _notifications[index];
-                  return ListTile(
-                    tileColor: n.read ? null : Colors.grey[50],
-                    leading: CircleAvatar(
-                      backgroundColor: n.read ? Colors.grey[300] : const Color(0xFF5B4AE2),
-                      child: Icon(n.read ? Icons.notifications_none : Icons.notifications, color: Colors.white),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                children: [
+                  // In-app / System sections separated like Discord
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8.0),
+                    child: Text('In-app notifications', style: TextStyle(color: Color(0xFF4E5058), fontWeight: FontWeight.w600)),
+                  ),
+
+                  _pill(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Get notifications within Reader Hub', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF060607))),
+                              SizedBox(height: 4),
+                              Text('Show notification badges and messages inside the Reader Hub.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _readerHub,
+                          onChanged: _setReaderHub,
+                          activeColor: const Color(0xFF5865F2),
+                        ),
+                      ],
                     ),
-                    title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.w500 : FontWeight.bold)),
-                    subtitle: Text(n.body, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    trailing: IconButton(
-                      icon: Icon(n.read ? Icons.check_circle_outline : Icons.brightness_1, color: n.read ? Colors.grey : const Color(0xFF5B4AE2), size: 18),
-                      onPressed: () => _toggleRead(n.id),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6.0, bottom: 8.0),
+                    child: Text('System notifications', style: TextStyle(color: Color(0xFF4E5058), fontWeight: FontWeight.w600)),
+                  ),
+
+                  // Example of a navigable row (keeps existing behavior unchanged)
+                  _pill(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Get notifications outside of Reader Hub', style: TextStyle(color: Color(0xFF060607), fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Configure push & system notification settings.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF4E5058)),
+                      onTap: () {}, // keep behavior - currently a placeholder
                     ),
-                    onTap: () {
-                      // In a real app you'd open the related content; here we mark read and show details
-                      _toggleRead(n.id);
-                      showDialog(
-                        context: context,
-                        builder: (_) {
-                          return AlertDialog(
-                            title: Text(n.title),
-                            content: Text(n.body),
-                            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  _pill(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Notify on every new message in conversations', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF060607))),
+                              SizedBox(height: 4),
+                              Text('Receive a notification for every incoming message in conversations.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _notifyEveryMessage,
+                          onChanged: _setNotifyEveryMessage,
+                          activeColor: const Color(0xFF5865F2),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8.0),
+                    child: Text('Other notifications', style: TextStyle(color: Color(0xFF4E5058), fontWeight: FontWeight.w600)),
+                  ),
+
+                  _pill(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                            Text('Get notifications when your friends stream', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF060607))),
+                            SizedBox(height: 4),
+                            Text('Be notified when a friend starts streaming.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                          ]),
+                        ),
+                        // placeholder toggle for stream notifications - kept as a visual element
+                        Switch(value: true, onChanged: (_) {}, activeColor: const Color(0xFF5865F2)),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8.0),
+                    child: Text('Reaction notifications', style: TextStyle(color: Color(0xFF4E5058), fontWeight: FontWeight.w600)),
+                  ),
+
+                  _pill(
+                    child: Column(
+                      children: [
+                        RadioListTile<ReactionMode>(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('All messages', style: TextStyle(color: Color(0xFF060607), fontWeight: FontWeight.w600)),
+                          subtitle: const Text('Notify when anyone reacts to any message.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                          value: ReactionMode.all,
+                          groupValue: _reactionMode,
+                          onChanged: (v) => v != null ? _setReactionMode(v) : null,
+                          activeColor: const Color(0xFF5865F2),
+                        ),
+                        RadioListTile<ReactionMode>(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Only direct messages', style: TextStyle(color: Color(0xFF060607), fontWeight: FontWeight.w600)),
+                          subtitle: const Text('Notify only for reactions on messages sent directly to you.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                          value: ReactionMode.direct,
+                          groupValue: _reactionMode,
+                          onChanged: (v) => v != null ? _setReactionMode(v) : null,
+                          activeColor: const Color(0xFF5865F2),
+                        ),
+                        RadioListTile<ReactionMode>(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Never', style: TextStyle(color: Color(0xFF060607), fontWeight: FontWeight.w600)),
+                          subtitle: const Text('Never send reaction notifications.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                          value: ReactionMode.never,
+                          groupValue: _reactionMode,
+                          onChanged: (v) => v != null ? _setReactionMode(v) : null,
+                          activeColor: const Color(0xFF5865F2),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // legacy personalization option kept but styled
+                  _pill(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+                            Text('Personalized suggestions', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF060607))),
+                            SizedBox(height: 4),
+                            Text('Receive suggestions and recommended content based on your activity.', style: TextStyle(color: Color(0xFF4E5058), fontSize: 13)),
+                          ]),
+                        ),
+                        Switch(value: _personalized, onChanged: _setPersonalized, activeColor: const Color(0xFF5865F2)),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.0),
+                    child: Text(
+                      "Tip: Changes are saved locally. Connect to your account or backend to sync preferences across devices.",
+                      style: TextStyle(fontSize: 12, color: Color(0xFF747F8D)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ],
@@ -203,28 +320,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
       ),
     );
   }
-
-  Widget _buildToggleRow({required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-          ]),
-        ),
-        Switch(value: value, onChanged: onChanged, activeColor: const Color(0xFF5B4AE2)),
-      ],
-    );
-  }
-}
-
-class _MockNotification {
-  final String id;
-  final String title;
-  final String body;
-  bool read;
-
-  _MockNotification({required this.id, required this.title, required this.body, this.read = false});
 }

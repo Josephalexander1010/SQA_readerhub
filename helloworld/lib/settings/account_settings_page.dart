@@ -1,4 +1,10 @@
+//lib/settings/account_settings_page.dart
 import 'package:flutter/material.dart';
+import 'change_password_page.dart';
+import 'change_username_page.dart';
+import 'change_phone_page.dart';
+import 'change_email_page.dart';
+import '../edit_profile_page.dart';
 
 class AccountSettingsPage extends StatelessWidget {
   const AccountSettingsPage({super.key});
@@ -53,20 +59,175 @@ class AccountSettingsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _groupCard(
                     children: [
-                      _compactRow(context, 'Username', 'sam3214540'),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChangeUsernamePage(currentUsername: 'sam3214540'),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Username',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2D2D2D),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'sam3214540',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       _divider(),
-                      _compactRow(context, 'Display Name', 'Sam'),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditProfilePage(
+                                initialName: 'Sam',
+                                initialUsername: '@sam3214540',
+                                initialAbout: 'I like to play',
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Display Name',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2D2D2D),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Sam',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       _divider(),
-                      _compactRow(context, 'Email', 'hubertus.samuel.jethro@gmail.com'),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChangeEmailPage(currentEmail: 'hubertus.samuel.jethro@gmail.com'),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Email',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2D2D2D),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'hubertus.samuel.jethro@gmail.com',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       _divider(),
-                      _compactRow(context, 'Phone', '+6281298881918'),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChangePhonePage(currentPhone: '+6281298881918'),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Phone',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF2D2D2D),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    '+6281298881918',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // CTA card
-                  _passwordCTA(context),
 
                   const SizedBox(height: 20),
 
@@ -75,11 +236,24 @@ class AccountSettingsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _groupCard(
                     children: [
-                      _compactRow(context, 'Password', ''),
-                      _divider(),
-                      _compactRow(context, 'Security Keys', '0 added'),
-                      _divider(),
-                      _compactRow(context, 'Enable Authenticator App', ''),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Password', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF2D2D2D))),
+                              const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -201,73 +375,6 @@ class AccountSettingsPage extends StatelessWidget {
   }
 
   Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
-
-  Widget _passwordCTA(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryPurple.withOpacity(0.18)),
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: primaryPurple.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.vpn_key, color: primaryPurple, size: 28),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Forget about your password',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: darkPurple,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Add a passkey and login with a single tap.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => _openPlaceholder(context, 'Get started'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Get started',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white, // 👈 NOW WHITE TEXT
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _openPlaceholder(BuildContext context, String label) {
     ScaffoldMessenger.of(context)
