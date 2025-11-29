@@ -1,14 +1,15 @@
-// lib/navbar.dart (Perbaikan textSkip & _buildPopupCard)
+// lib/navbar.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
-
+import 'models.dart';
 import 'homepage.dart';
 import 'searchpage.dart';
-import 'channelspage.dart';
+import 'my_channel_collection.dart';
 import 'profilepage.dart';
 import 'createfeed.dart';
 import 'createchannel.dart';
+import 'channel_detail.dart';
 
 class NavBar extends StatefulWidget {
   const NavBar({super.key});
@@ -21,21 +22,101 @@ class _NavBarState extends State<NavBar> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   final GlobalKey _fabKey = GlobalKey();
-  late List<Widget> _pages;
+  final GlobalKey<HomePageState> _homePageKey = GlobalKey<HomePageState>();
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      HomePage(
-        fabKey: _fabKey,
-        onShowStep4: _showWalkthroughStep4,
-      ),
-      const SearchPage(),
-      const ChannelsPage(),
-      const ProfilePage(),
-    ];
+    // Inisialisasi lastVisited dari data global saat aplikasi mulai
+    gLastVisitedChannels = gAllChannels.take(4).toList();
   }
+
+  // --- LOGIKA STATE UTAMA ---
+
+  // 1. Callback saat channel diklik (dikunjungi)
+  void _handleChannelVisited(ChannelInfo channel) {
+    setState(() {
+      // Hapus jika sudah ada agar tidak duplikat, lalu masukkan ke depan
+      gLastVisitedChannels.removeWhere((c) => c.id == channel.id);
+      gLastVisitedChannels.insert(0, channel);
+
+      // Batasi hanya 4 item (+1 Load More nanti di UI)
+      if (gLastVisitedChannels.length > 4) {
+        gLastVisitedChannels = gLastVisitedChannels.sublist(0, 4);
+      }
+    });
+  }
+
+  // 2. Callback saat channel dihapus (Long Press di Collection)
+  void _handleDeleteChannel(ChannelInfo channel) {
+    setState(() {
+      // Hapus dari daftar utama
+      gAllChannels.removeWhere((c) => c.id == channel.id);
+      // Hapus juga dari history kunjungan
+      gLastVisitedChannels.removeWhere((c) => c.id == channel.id);
+    });
+
+    // Tampilkan snackbar konfirmasi
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Channel '${channel.name}' deleted"),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // 3. Navigasi ke Create Channel
+  void _navigateToCreateChannel() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateChannelPage()),
+    );
+
+    if (result != null && result is Map<String, dynamic>) {
+      // Konversi data Map dari CreateChannelPage ke model ChannelInfo
+      final newChannel = ChannelInfo(
+        id: result['id'],
+        name: result['name'],
+        description: result['description'],
+        pfpPath: result['avatar'],
+        isPfpAsset: result['isAsset'],
+        isPfpNetwork: result['isNetwork'],
+        subChannels: (result['subChannels'] as List<dynamic>)
+            .map((sub) => SubChannelInfo(name: sub['name']))
+            .toList(),
+        isOwned: true, // Channel baru pasti milik user
+        isFollowing: true,
+      );
+
+      setState(() {
+        // Tambah ke list global
+        gAllChannels.insert(0, newChannel);
+        // Tandai sebagai dikunjungi
+        _handleChannelVisited(newChannel);
+      });
+
+      // Pindah ke tab MyChannelCollectionPage (index 2)
+      _onItemTapped(2);
+    }
+  }
+
+  // 4. Navigasi ke Create Feed
+  void _navigateToCreateFeed() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateFeedPage()),
+    );
+
+    if (result != null && result is FeedPost) {
+      _homePageKey.currentState?.addNewPost(result);
+      if (_selectedIndex != 0) {
+        _onItemTapped(0);
+      }
+      debugPrint('Postingan baru diterima: ${result.caption}');
+    }
+  }
+  // --------------------------
 
   void _onItemTapped(int index) {
     setState(() {
@@ -44,14 +125,207 @@ class _NavBarState extends State<NavBar> {
     _pageController.jumpToPage(index);
   }
 
+  // --- UI BUILDER ---
+  @override
+  Widget build(BuildContext context) {
+    // Kita membangun list pages di sini agar selalu mendapat state terbaru
+    // saat setState dipanggil
+    final List<Widget> pages = [
+      HomePage(
+        key: _homePageKey,
+        fabKey: _fabKey,
+        onShowStep4: _showWalkthroughStep4,
+        lastVisitedChannels: gLastVisitedChannels, // Data terbaru
+        onChannelVisited: _handleChannelVisited,
+        onLoadMore: () => _onItemTapped(2),
+      ),
+      const SearchPage(),
+      MyChannelCollectionPage(
+        allChannels: gAllChannels, // Data terbaru
+        onChannelVisited: _handleChannelVisited,
+        onChannelDeleted:
+            _handleDeleteChannel, // <-- Fungsi delete diteruskan ke sini
+      ),
+      const ProfilePage(),
+    ];
+
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: pages,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((255 * 0.1).round()),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8,
+          color: Colors.white,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home_outlined, Icons.home, 0),
+                _buildNavItem(Icons.search, Icons.search, 1),
+                const SizedBox(width: 60),
+                _buildNavItem(Icons.hub_outlined, Icons.hub, 2),
+                _buildNavItem(Icons.person_outline, Icons.person, 3),
+              ],
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        key: _fabKey,
+        heroTag: 'navbarFAB', // Tag unik untuk mencegah error Hero
+        onPressed: () => _showCreateMenu(context),
+        backgroundColor: const Color(0xFF3B2C8D),
+        child: const Icon(Icons.add, size: 32, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  // --- MENU POPUP (+ Button) ---
+  void _showCreateMenu(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withAlpha((255 * 0.3).round()),
+      builder: (BuildContext context) {
+        return Stack(
+          children: [
+            Positioned(
+              bottom: 100,
+              right: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 200,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B2C8D),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha((255 * 0.2).round()),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToCreateChannel();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          child: const Row(
+                            children: [
+                              Text(
+                                'Create\nChannel',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              Spacer(),
+                              Icon(
+                                Icons.hub_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        height: 1,
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.white.withAlpha((255 * 0.3).round()),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToCreateFeed();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          child: const Row(
+                            children: [
+                              Text(
+                                'Create\nFeeds',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              Spacer(),
+                              Icon(
+                                Icons.edit_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // --- NAVIGATION ITEM ---
+  Widget _buildNavItem(IconData icon, IconData activeIcon, int index) {
+    bool isSelected = _selectedIndex == index;
+    return InkWell(
+      onTap: () => _onItemTapped(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Icon(
+          isSelected ? activeIcon : icon,
+          color: isSelected ? const Color(0xFF3B2C8D) : Colors.grey,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  // --- TUTORIAL COACH MARK ---
   void _showWalkthroughStep4() {
     TutorialCoachMark(
       targets: [_createFabTarget()],
       colorShadow: Colors.black.withAlpha((255 * 0.7).round()),
-      // =======================================================
-      // PERBAIKAN DI SINI: Menghapus tombol "SKIP" di pojok
       textSkip: "",
-      // =======================================================
       onFinish: () async {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('walkthrough_step_5_pending', true);
@@ -96,191 +370,9 @@ class _NavBarState extends State<NavBar> {
     await prefs.setBool('walkthrough_completed', true);
     await prefs.setBool('walkthrough_step_5_pending', false);
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: _pages,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha((255 * 0.1).round()),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomAppBar(
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 8,
-          color: Colors.white,
-          child: SizedBox(
-            height: 60,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_outlined, Icons.home, 0),
-                _buildNavItem(Icons.search, Icons.search, 1),
-                const SizedBox(width: 60),
-                _buildNavItem(Icons.hub_outlined, Icons.hub, 2),
-                _buildNavItem(Icons.person_outline, Icons.person, 3),
-              ],
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        key: _fabKey,
-        onPressed: () => _showCreateMenu(context),
-        backgroundColor: const Color(0xFF3B2C8D),
-        child: const Icon(Icons.add, size: 32, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
-
-  void _showCreateMenu(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withAlpha((255 * 0.3).round()),
-      builder: (BuildContext context) {
-        return Stack(
-          children: [
-            Positioned(
-              bottom: 100,
-              right: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: 200,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B2C8D),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha((255 * 0.2).round()),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateChannelPage(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          child: const Row(
-                            children: [
-                              Text(
-                                'Create\nChannel',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.2,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                              Spacer(),
-                              Icon(
-                                Icons.hub_outlined,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        height: 1,
-                        margin: const EdgeInsets.symmetric(horizontal: 20),
-                        color: Colors.white.withAlpha((255 * 0.3).round()),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateFeedPage(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          child: const Row(
-                            children: [
-                              Text(
-                                'Create\nFeeds',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.2,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                              Spacer(),
-                              Icon(
-                                Icons.edit_outlined,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, IconData activeIcon, int index) {
-    bool isSelected = _selectedIndex == index;
-    return InkWell(
-      onTap: () => _onItemTapped(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Icon(
-          isSelected ? activeIcon : icon,
-          color: isSelected ? const Color(0xFF3B2C8D) : Colors.grey,
-          size: 28,
-        ),
-      ),
-    );
-  }
 }
 
-// ===================================================================
-// PERBAIKAN RESPONSIVE: Menggunakan ListView dan max-height
-// ===================================================================
+// --- TUTORIAL WIDGET ---
 Widget _buildPopupCard({
   required String step,
   required String title,
@@ -290,26 +382,22 @@ Widget _buildPopupCard({
   String continueText = "Continue",
 }) {
   return Builder(builder: (context) {
-    // Dapatkan tinggi layar
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Material(
       color: Colors.transparent,
       child: Container(
-        // Padding internal yang lebih kecil
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        // Batasi tinggi popup agar bisa di-scroll jika konten terlalu panjang
         constraints: BoxConstraints(
-          maxWidth: 500, // Lebar maks
-          maxHeight: screenHeight * 0.7, // Maks 70% tinggi layar
+          maxWidth: 500,
+          maxHeight: screenHeight * 0.7,
         ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
         ),
-        // GANTI Column -> ListView agar bisa scroll jika overflow
         child: ListView(
-          shrinkWrap: true, // Ambil ruang secukupnya
+          shrinkWrap: true,
           children: [
             Text(
               step,
@@ -341,7 +429,6 @@ Widget _buildPopupCard({
               ),
             ),
             const SizedBox(height: 20),
-            // Tombol tetap menggunakan Wrap
             Wrap(
               alignment: WrapAlignment.end,
               spacing: 8.0,

@@ -13,8 +13,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate to NavBar after 2.2 seconds
-    Timer(const Duration(milliseconds: 2200), () {
+
+    // --- PERUBAHAN DI SINI ---
+    // Diubah dari 2200ms menjadi 3 detik
+    Timer(const Duration(seconds: 3), () {
+      // -------------------------
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
@@ -23,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    // final size = MediaQuery.of(context).size; // Tidak diperlukan lagi
 
     return Scaffold(
       body: Container(
@@ -41,12 +44,17 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: size.height * 0.06),
+              // --- PERUBAHAN DI SINI ---
+              // Menggunakan Spacer untuk ruang fleksibel di bagian atas
+              // Ini akan memperbaiki masalah overflow di semua layar
+              const Spacer(flex: 2),
+              // -------------------------
 
               // White circular logo container
               Container(
-                width: size.width * 0.34,
-                height: size.width * 0.34,
+                // Menggunakan nilai tetap agar tidak terlalu besar/kecil
+                width: 130,
+                height: 130,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
@@ -88,7 +96,10 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
 
-              SizedBox(height: size.height * 0.22),
+              // --- PERUBAHAN DI SINI ---
+              // Menggunakan Spacer untuk ruang fleksibel di bagian bawah
+              const Spacer(flex: 3),
+              // -------------------------
             ],
           ),
         ),

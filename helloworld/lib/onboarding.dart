@@ -1,5 +1,6 @@
+// lib/onboarding.dart
 import 'package:flutter/material.dart';
-import 'login_page.dart'; // <- gunakan LoginPage setelah onboarding selesai
+import 'login_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -12,29 +13,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _page = 0;
 
+  // --- DATA ONBOARDING DIPERBARUI (TEKS LEBIH PANJANG) ---
   final List<_OnboardPageData> pages = [
     _OnboardPageData(
       title: 'Safe & Structured\nDiscussions',
       description:
-          'Dive into deep conversations, neatly organized by Channels and Sub-channels. Your content remains private and protected.',
+          'Dive into deep conversations, neatly organized by Channels and Sub-channels. Your content remains private and protected. We ensure a secure environment where your discussions can thrive without privacy concerns.',
       icon: Icons.forum_rounded,
       imageAsset: 'assets/images/carousel1.png',
     ),
     _OnboardPageData(
       title: 'Highlighting &\nCommunity Discover',
       description:
-          'Easily search for channels, topics, authors, or even your favorite quotes. Never miss out on the discussions trending in your community.',
+          'Easily search for channels, topics, authors, or even your favorite quotes. Never miss out on the discussions trending in your community.\n\nYou will not be able to take screenshots, to respect copyright.',
       icon: Icons.search_rounded,
       imageAsset: 'assets/images/carousel2.png',
     ),
     _OnboardPageData(
       title: 'Connect with\nYour Community',
       description:
-          'Join fellow readers, writers, and fans. Build your profile, share your contributions, stay engaged with notification in every interaction.',
+          'Join fellow readers, writers, and fans. Build your profile, share your contributions, stay engaged with notification in every interaction. Become a key part of a growing community that values every member\'s input.',
       icon: Icons.people_rounded,
       imageAsset: 'assets/images/carousel3.png',
     ),
   ];
+  // -------------------------------------------------------
 
   @override
   void dispose() {
@@ -43,7 +46,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _onGetStarted() {
-    // <-- ganti target ke LoginPage
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginPage()),
     );
@@ -205,7 +207,7 @@ class _BottomCard extends StatelessWidget {
 
             const SizedBox(height: 14),
 
-            // Dots + Button (only on last page show Get Started)
+            // Dots + Button (Safe from overflow)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -227,30 +229,39 @@ class _BottomCard extends StatelessWidget {
                   }),
                 ),
 
-                // Only show Get Started on last page
-                if (isLast)
-                  ElevatedButton(
-                    onPressed: onGetStarted,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5B4AE2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                // Tombol Get Started / Spacer
+                // Visibility dengan maintainSize menjaga layout tetap stabil
+                // Flexible mencegah overflow jika layar sangat sempit
+                Flexible(
+                  child: Visibility(
+                    visible: isLast,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: ElevatedButton(
+                      onPressed: onGetStarted,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5B4AE2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 12),
+                        elevation: 0,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 12),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Get Started',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                      child: const Text(
+                        'Get Started',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  )
-                else
-                  // keep empty space so layout doesn't jump when button appears
-                  const SizedBox(width: 94),
+                  ),
+                ),
               ],
             ),
           ],
