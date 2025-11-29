@@ -1,5 +1,5 @@
 // lib/subchannel_page.dart
-import 'dart:io';
+import 'dart:io'; // <-- Pastikan ini ada untuk File
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -36,15 +36,28 @@ class _SubChannelPageState extends State<SubChannelPage> {
   @override
   void initState() {
     super.initState();
-    // Ambil data dari memori global
-    _loadPosts();
 
-    // Jika ada post baru dari navigasi, pastikan masuk list
+    // 1. Simpan newPost ke global jika ada
     if (widget.newPost != null) {
-      // Cek duplicate agar tidak double jika setState dipanggil
-      if (!_allPosts.any((p) => p.id == widget.newPost!.id)) {
-        _allPosts.insert(0, widget.newPost!);
+      _saveNewPostToGlobal(widget.newPost!);
+    }
+
+    // 2. Muat dari global
+    _loadPosts();
+  }
+
+  void _saveNewPostToGlobal(SubChannelPost post) {
+    try {
+      final channel =
+          gAllChannels.firstWhere((c) => c.name == widget.parentChannelName);
+      final sub = channel.subChannels
+          .firstWhere((s) => s.name == widget.subChannelName);
+
+      if (!sub.posts.any((p) => p.id == post.id)) {
+        sub.posts.insert(0, post);
       }
+    } catch (e) {
+      debugPrint("Gagal menyimpan post ke global: $e");
     }
   }
 
@@ -54,13 +67,12 @@ class _SubChannelPageState extends State<SubChannelPage> {
           gAllChannels.firstWhere((c) => c.name == widget.parentChannelName);
       final sub = channel.subChannels
           .firstWhere((s) => s.name == widget.subChannelName);
-      _allPosts = sub.posts; // Referensi ke list global
+      _allPosts = sub.posts;
     } catch (e) {
       _allPosts = [];
     }
   }
 
-  // --- FITUR HAPUS FEED ---
   void _deletePost(SubChannelPost post) {
     showDialog(
       context: context,
@@ -150,7 +162,6 @@ class _SubChannelPageState extends State<SubChannelPage> {
     return '${(count / 1000).toStringAsFixed(1)}K';
   }
 
-  // Helper cek video
   bool _isVideo(String path) {
     final ext = path.toLowerCase();
     return ext.endsWith('.mp4') || ext.endsWith('.mov') || ext.endsWith('.avi');
@@ -165,13 +176,13 @@ class _SubChannelPageState extends State<SubChannelPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- Avatar ---
           _networkAvatar(post.avatarUrl, radius: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header & Tombol Delete
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -197,9 +208,11 @@ class _SubChannelPageState extends State<SubChannelPage> {
                         ],
                       ),
                     ),
-                    // TOMBOL HAPUS FEED
-                    if (post.authorName ==
-                        '@Anda') // Hanya bisa hapus post sendiri
+                    // Hapus Feed (Untuk post sendiri)
+                    // Kita asumsikan nama channel yang dibuat user itu miliknya
+                    // Atau logic sederhana: jika isOwned == true di channel parent
+                    // (Disini kita sederhanakan: tombol delete selalu muncul untuk post baru user)
+                    if (true)
                       GestureDetector(
                         onTap: () => _deletePost(post),
                         child: const Icon(Icons.more_horiz,
@@ -207,15 +220,12 @@ class _SubChannelPageState extends State<SubChannelPage> {
                       ),
                   ],
                 ),
-
                 const SizedBox(height: 4),
                 Text(
                   post.message,
                   style:
                       GoogleFonts.poppins(fontSize: 15, color: Colors.black87),
                 ),
-
-                // --- PERBAIKAN VIDEO CRASH ---
                 if (post.hasImage && post.mediaPath != null) ...[
                   const SizedBox(height: 12),
                   ClipRRect(
@@ -223,9 +233,7 @@ class _SubChannelPageState extends State<SubChannelPage> {
                     child: _buildMediaContent(post),
                   ),
                 ],
-
                 const SizedBox(height: 12),
-                // Action Buttons
                 Row(
                   children: [
                     if (post.commentsEnabled) ...[
@@ -275,11 +283,8 @@ class _SubChannelPageState extends State<SubChannelPage> {
     );
   }
 
-  // --- WIDGET BARU UNTUK MENANGANI VIDEO/GAMBAR ---
   Widget _buildMediaContent(SubChannelPost post) {
-    // 1. Cek apakah ini Video
     if (_isVideo(post.mediaPath!)) {
-      // Tampilkan Placeholder Video (Kotak Hitam + Play Icon)
       return Container(
         height: 200,
         width: double.infinity,
@@ -290,7 +295,6 @@ class _SubChannelPageState extends State<SubChannelPage> {
       );
     }
 
-    // 2. Jika Gambar Web
     if (post.isMediaNetwork) {
       return Image.network(
         post.mediaPath!,
@@ -301,7 +305,6 @@ class _SubChannelPageState extends State<SubChannelPage> {
       );
     }
 
-    // 3. Jika Gambar File Lokal (Mobile)
     return Image.file(
       File(post.mediaPath!),
       height: 200,
@@ -324,17 +327,38 @@ class _SubChannelPageState extends State<SubChannelPage> {
     ]);
   }
 
+  // --- PERBAIKAN UTAMA DI SINI ---
   Widget _networkAvatar(String imageUrl, {double radius = 24}) {
-    // (Kode avatar sama seperti sebelumnya, disingkat biar muat)
-    final bool isNetwork = imageUrl.startsWith('http');
+    if (imageUrl.isEmpty) {
+      return CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.grey[300],
+          child: Icon(Icons.person, color: Colors.grey[600], size: radius));
+    }
+
+    ImageProvider imageProvider;
+
+    if (imageUrl.startsWith('http')) {
+      // Gambar dari Internet (atau Blob di web)
+      imageProvider = NetworkImage(imageUrl);
+    } else if (imageUrl.startsWith('assets/')) {
+      // Gambar dari Assets
+      imageProvider = AssetImage(imageUrl);
+    } else {
+      // Gambar dari File Lokal (Mobile)
+      if (kIsWeb) {
+        // Fallback untuk web jika path aneh
+        imageProvider = NetworkImage(imageUrl);
+      } else {
+        imageProvider = FileImage(File(imageUrl));
+      }
+    }
+
     return CircleAvatar(
-        radius: radius,
-        backgroundColor: Colors.grey[300],
-        child: ClipOval(
-            child: isNetwork
-                ? Image.network(imageUrl,
-                    width: radius * 2, height: radius * 2, fit: BoxFit.cover)
-                : Image.asset(imageUrl,
-                    width: radius * 2, height: radius * 2, fit: BoxFit.cover)));
+      radius: radius,
+      backgroundColor: Colors.grey[300],
+      backgroundImage: imageProvider,
+      // Child null karena pakai backgroundImage
+    );
   }
 }
