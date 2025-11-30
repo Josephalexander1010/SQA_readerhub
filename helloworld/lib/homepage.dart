@@ -1,54 +1,106 @@
-// lib/homepage.dart (Perbaikan textSkip)
+// lib/homepage.dart
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'notificationpage.dart';
-import 'specific_channel_page.dart';
+import 'channel_detail.dart';
+import 'feed.dart';
+import 'createfeed.dart';
+import 'models.dart';
 
 class HomePage extends StatefulWidget {
   final GlobalKey fabKey;
   final VoidCallback onShowStep4;
 
+  final List<ChannelInfo> lastVisitedChannels;
+  final Function(ChannelInfo) onChannelVisited;
+  final VoidCallback onLoadMore;
+
   const HomePage({
     super.key,
     required this.fabKey,
     required this.onShowStep4,
+    required this.lastVisitedChannels,
+    required this.onChannelVisited,
+    required this.onLoadMore,
   });
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> {
+  // ... (Data _homeFeeds, _likedFeeds, _savedFeeds SAMA) ...
   final Map<int, bool> _likedFeeds = {};
   final Map<int, bool> _savedFeeds = {};
-  final List<String> _feedImageUrls = [
-    'https://randomuser.me/api/portraits/men/32.jpg',
-    'https://randomuser.me/api/portraits/women/44.jpg',
-    'https://randomuser.me/api/portraits/men/46.jpg',
-  ];
-
-  final List<Map<String, dynamic>> _featuredChannels = [
+  final List<Map<String, dynamic>> _homeFeeds = [
     {
-      'name': 'Harry Potter',
-      'avatar':
-          'https://upload.wikimedia.org/wikipedia/en/d/d7/Harry_Potter_character_poster.jpg',
-      'description':
-          'Welcome to Hogwarts, young witch or wizard! 🪄 You\'ve just stepped into the Great Castle — a place where magic, friendship, and adventure await you at every turn. Here, you\'ll learn about the world of spellcasting, explore the secrets of the castle, and meet fellow students from all four houses.\n\nIn this channel, you\'ll find everything you need to get started: introductions, server guidelines, and a warm welcome from our staff and prefects. Take your time to look around, claim your house, and prepare for an unforgettable journey through the Wizarding World.',
-      'subChannels': const [
-        SubChannelInfo(name: 'General', unreadCount: 67),
-        SubChannelInfo(name: 'Harry x Hermoine'),
-        SubChannelInfo(name: 'Music'),
-      ],
+      'id': 0,
+      'username': 'John Doe',
+      'imageUrl': 'https://randomuser.me/api/portraits/men/32.jpg',
+      'channel': 'Reading Club',
+      'subtitle': 'Read',
+      'time': '1m',
+      'content': 'What\'s happening?',
+      'comments': 95,
+      'likes': 1300,
+      'hasImage': false,
     },
+    {
+      'id': 1,
+      'username': 'Jane Smith',
+      'imageUrl': 'https://randomuser.me/api/portraits/women/44.jpg',
+      'channel': 'Harry x Hermoi..',
+      'subtitle': 'Story of Greatn..',
+      'time': '1m',
+      'content': 'What\'s happening?',
+      'comments': 95,
+      'likes': 1300,
+      'hasImage': false,
+    },
+    {
+      'id': 2,
+      'username': 'Mike Johnson',
+      'imageUrl': 'https://randomuser.me/api/portraits/men/46.jpg',
+      'channel': 'Reading FC',
+      'subtitle': 'Story Of Greatn..',
+      'time': '1m',
+      'content': 'What\'s happening?',
+      'comments': 95,
+      'likes': 1300,
+      'hasImage': true,
+    }
   ];
 
   late TutorialCoachMark _tutorialSteps2and3;
-
   final GlobalKey _myChannelsKey = GlobalKey();
   final GlobalKey _firstFeedItemKey = GlobalKey();
 
+  // ... (Fungsi addNewPost SAMA) ...
+  void addNewPost(FeedPost post) {
+    final int newId = _homeFeeds.fold<int>(
+            0, (prev, map) => map['id'] > prev ? map['id'] : prev) +
+        1;
+    final newFeedMap = {
+      'id': newId,
+      'username': 'Anda',
+      'imageUrl': 'https://randomuser.me/api/portraits/lego/1.jpg',
+      'channel': post.channel,
+      'subtitle': post.subChannel,
+      'time': 'Baru saja',
+      'content': post.caption,
+      'comments': 0,
+      'likes': 0,
+      'hasImage': post.media != null,
+    };
+    setState(() {
+      _homeFeeds.insert(0, newFeedMap);
+    });
+  }
+
+  // ... (Kode tutorial _checkAndShowWalkthrough, dll. SAMA) ...
   @override
   void initState() {
     super.initState();
@@ -62,11 +114,11 @@ class _HomePageState extends State<HomePage> {
     bool hasCompleted = prefs.getBool('walkthrough_completed') ?? false;
 
     if (!hasCompleted && mounted) {
-      _showWalkthroughStep1_Dialog();
+      _showWalkthroughStep1Dialog();
     }
   }
 
-  void _showWalkthroughStep1_Dialog() {
+  void _showWalkthroughStep1Dialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -145,10 +197,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ],
       colorShadow: Colors.black.withAlpha((255 * 0.7).round()),
-      // =======================================================
-      // PERBAIKAN DI SINI: Menghapus tombol "SKIP" di pojok
       textSkip: "",
-      // =======================================================
       onFinish: () {
         widget.onShowStep4();
       },
@@ -167,6 +216,38 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (Fungsi build SAMA) ...
+
+    if (_homeFeeds.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 10),
+              Container(
+                key: _myChannelsKey,
+                child: _buildMyChannelsSection(),
+              ),
+              const SizedBox(height: 24),
+              _buildChannelFeedHeader(),
+              const Expanded(
+                child: Center(
+                  child: Text("Tidak ada feed untuk ditampilkan."),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final firstFeed = _homeFeeds[0];
+    final int firstId = firstFeed['id'] as int;
+    final bool isFirstLiked = _likedFeeds[firstId] ?? false;
+    final bool isFirstSaved = _savedFeeds[firstId] ?? false;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
@@ -190,16 +271,30 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildChannelFeedHeader(),
-                        _buildFeedItem(
-                          id: 0,
-                          username: 'John Doe',
-                          imageUrl: _feedImageUrls[0],
-                          channel: 'Reading Club',
-                          subtitle: 'Read',
-                          time: '1m',
-                          content: 'What\'s happening?',
-                          comments: 95,
-                          likes: 1300,
+                        FeedItem(
+                          id: firstId,
+                          username: firstFeed['username'] as String,
+                          imageUrl: firstFeed['imageUrl'] as String,
+                          channel: firstFeed['channel'] as String,
+                          subtitle: firstFeed['subtitle'] as String,
+                          time: firstFeed['time'] as String,
+                          content: firstFeed['content'] as String,
+                          comments: firstFeed['comments'] as int,
+                          likes: firstFeed['likes'] as int,
+                          hasImage: firstFeed['hasImage'] as bool,
+                          isLiked: isFirstLiked,
+                          isSaved: isFirstSaved,
+                          avatarBuilder: buildAvatar, // Dari feed.dart
+                          onLike: () {
+                            setState(() {
+                              _likedFeeds[firstId] = !isFirstLiked;
+                            });
+                          },
+                          onSave: () {
+                            setState(() {
+                              _savedFeeds[firstId] = !isFirstSaved;
+                            });
+                          },
                         ),
                       ],
                     ),
@@ -215,37 +310,50 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFeedListRemaining() {
-    return Column(
-      children: [
-        _buildFeedItem(
-          id: 1,
-          username: 'Jane Smith',
-          imageUrl: _feedImageUrls[1],
-          channel: 'Harry x Hermoi..',
-          subtitle: 'Story of Greatn..',
-          time: '1m',
-          content: 'What\'s happening?',
-          comments: 95,
-          likes: 1300,
-        ),
-        _buildFeedItem(
-          id: 2,
-          username: 'Mike Johnson',
-          imageUrl: _feedImageUrls[2],
-          channel: 'Reading FC',
-          subtitle: 'Story Of Greatn..',
-          time: '1m',
-          content: 'What\'s happening?',
-          comments: 95,
-          likes: 1300,
-          hasImage: true,
-        ),
-      ],
+    // ... (Fungsi _buildFeedListRemaining SAMA) ...
+    if (_homeFeeds.length <= 1) return Container();
+    final remainingFeeds = _homeFeeds.sublist(1);
+    return ListView.builder(
+      itemCount: remainingFeeds.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        final feed = remainingFeeds[index];
+        final int id = feed['id'] as int;
+        final bool isLiked = _likedFeeds[id] ?? false;
+        final bool isSaved = _savedFeeds[id] ?? false;
+
+        return FeedItem(
+          id: id,
+          username: feed['username'] as String,
+          imageUrl: feed['imageUrl'] as String,
+          channel: feed['channel'] as String,
+          subtitle: feed['subtitle'] as String,
+          time: feed['time'] as String,
+          content: feed['content'] as String,
+          comments: feed['comments'] as int,
+          likes: feed['likes'] as int,
+          hasImage: feed['hasImage'] as bool,
+          isLiked: isLiked,
+          isSaved: isSaved,
+          avatarBuilder: buildAvatar, // Dari feed.dart
+          onLike: () {
+            setState(() {
+              _likedFeeds[id] = !isLiked;
+            });
+          },
+          onSave: () {
+            setState(() {
+              _savedFeeds[id] = !isSaved;
+            });
+          },
+        );
+      },
     );
   }
 
-  // ... (Sisa kode _buildHeader, _buildMyChannelsSection, dll. TETAP SAMA) ...
   Widget _buildHeader() {
+    // ... (Fungsi _buildHeader SAMA) ...
     return Container(
       color: const Color(0xFFF8F9FA),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -287,41 +395,62 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // --- PERBAIKAN DI SINI ---
+  // Direvisi total untuk menggunakan Row + Expanded
   Widget _buildMyChannelsSection() {
+    // Tentukan ukuran lingkaran yang lebih kecil
+    const double itemSize = 60.0;
+
+    // Buat list 4 channel, isi dengan null jika kosong
+    List<ChannelInfo?> channelsToShow = List.from(widget.lastVisitedChannels);
+    while (channelsToShow.length < 4) {
+      channelsToShow.add(null);
+    }
+
     return Container(
       color: const Color(0xFFF8F9FA),
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 110,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                ..._featuredChannels
-                    .map((channel) => _buildChannelCircle(channel)),
-                _buildLoadMoreCircle(),
-              ],
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      child: SizedBox(
+        height: itemSize + 30, // Ukuran lingkaran + teks
+        child: Row(
+          // <-- Ganti ListView ke Row
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Tampilkan 4 channel (atau placeholder)
+            // Bungkus masing-masing dengan Expanded agar ruang terbagi rata
+            ...channelsToShow.map(
+              (channel) => Expanded(
+                child: channel != null
+                    ? _buildChannelCircle(channel, itemSize)
+                    : Container(), // Placeholder kosong
+              ),
             ),
-          ),
-        ],
+
+            // Selalu tampilkan "Load More" sebagai item ke-5
+            Expanded(
+              child: _buildLoadMoreCircle(itemSize),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildChannelCircle(Map<String, dynamic> channel) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => _openSpecificChannel(channel),
-            child: Container(
-              width: 70,
-              height: 70,
+  Widget _buildChannelCircle(ChannelInfo channel, double size) {
+    // Hapus Padding dari sini
+    return GestureDetector(
+      onTap: () => _openChannelDetail(channel),
+      child: SizedBox(
+        width: size,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: Colors.grey[300],
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withAlpha((255 * 0.1).round()),
@@ -331,86 +460,77 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               child: ClipOval(
-                child: Image.network(
-                  channel['avatar'] as String,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: Icon(Icons.person, color: Colors.grey[700]),
-                    );
-                  },
-                ),
+                child: _buildChannelPfp(channel), // Gunakan helper PFP
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 70,
-            child: Text(
-              channel['name'] as String,
+            const SizedBox(height: 6),
+            Text(
+              channel.name,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3B2C8D),
+              maxLines: 1, // <-- Paksa 1 baris
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
                 fontFamily: 'Poppins',
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildLoadMoreCircle() {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            width: 65,
-            height: 65,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFF3B2C8D),
+  Widget _buildLoadMoreCircle(double size) {
+    // Hapus Padding dari sini
+    return GestureDetector(
+      onTap: widget.onLoadMore,
+      child: SizedBox(
+        width: size,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+              width: size,
+              height: size,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF3B2C8D),
+              ),
+              child:
+                  const Icon(Icons.more_horiz, color: Colors.white, size: 30),
             ),
-            child: const Icon(Icons.more_horiz, color: Colors.white, size: 30),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Load More...',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[600],
-              fontFamily: 'Poppins',
+            const SizedBox(height: 6),
+            Text(
+              'Load More...',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontFamily: 'Poppins',
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+  // -------------------------
 
-  void _openSpecificChannel(Map<String, dynamic> channel) {
-    final subChannels = List<SubChannelInfo>.from(
-      channel['subChannels'] as List<SubChannelInfo>,
-    );
-
+  // Arahkan ke Halaman Detail Channel yang BARU
+  void _openChannelDetail(ChannelInfo channel) {
+    widget.onChannelVisited(channel);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SpecificChannelPage(
-          title: channel['name'] as String,
-          description: channel['description'] as String,
-          avatarUrl: channel['avatar'] as String,
-          initialSubChannels: subChannels,
+        builder: (context) => ChannelDetailPage(
+          channel: channel,
         ),
       ),
     );
   }
 
   Widget _buildChannelFeedHeader() {
+    // ... (Kode _buildChannelFeedHeader SAMA) ...
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -433,580 +553,9 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  Widget _buildAvatar(String imageUrl, {double radius = 20}) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.grey[300], // Warna fallback
-      child: ClipOval(
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          width: radius * 2,
-          height: radius * 2,
-          // Ini akan menampilkan icon 'person' jika gambar gagal di-load
-          errorBuilder: (context, error, stackTrace) {
-            return Icon(
-              Icons.person,
-              color: Colors.grey[600],
-              size: radius * 1.2,
-            );
-          },
-          // Ini menampilkan loading indicator saat gambar sedang diambil
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child; // Gambar selesai
-            return Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFeedItem({
-    required int id,
-    required String username,
-    required String imageUrl,
-    required String channel,
-    required String subtitle,
-    required String time,
-    required String content,
-    required int comments,
-    required int likes,
-    bool hasImage = false,
-  }) {
-    final isLiked = _likedFeeds[id] ?? false;
-    final isSaved = _savedFeeds[id] ?? false;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!, width: 1.0),
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _buildAvatar(imageUrl, radius: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          username,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '$channel → $subtitle',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                              fontFamily: 'Poppins',
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '· $time',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[500],
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.more_horiz, color: Colors.grey[600], size: 20),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            content,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black87,
-              fontFamily: 'Poppins',
-            ),
-          ),
-          if (hasImage) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              height: 220,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.image_outlined,
-                  color: Colors.white.withAlpha((255 * 0.3).round()),
-                  size: 60,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => _showCommentsSheet(context, id),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      color: Colors.grey[600],
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      comments.toString(),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _likedFeeds[id] = !isLiked;
-                  });
-                },
-                child: Row(
-                  children: [
-                    Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.red : Colors.grey[600],
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${(likes / 1000).toStringAsFixed(1)}k',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isLiked ? Colors.red : Colors.grey[600],
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _savedFeeds[id] = !isSaved;
-                  });
-                },
-                child: Icon(
-                  isSaved ? Icons.bookmark : Icons.bookmark_border,
-                  color: isSaved ? Colors.yellow[700] : Colors.grey[600],
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              GestureDetector(
-                onTap: () => _showShareDialog(context, id),
-                child: Icon(Icons.ios_share, color: Colors.grey[600], size: 20),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCommentsSheet(BuildContext context, int feedId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CommentsSheet(
-        feedId: feedId,
-        buildAvatar: _buildAvatar,
-      ),
-    );
-  }
-
-  void _showShareDialog(BuildContext context, int feedId) {
-    final link =
-        'https://www.readerhub.com/p/DQhHINKCX0F/?igsh=MXJrcnRkYXU2bHQyOA==';
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Share Post',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SelectableText(
-                  link,
-                  style: const TextStyle(fontSize: 14, fontFamily: 'Poppins'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(fontFamily: 'Poppins'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: link));
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Link copied!')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3B2C8D),
-                    ),
-                    child: const Text(
-                      'Copy Link',
-                      style: TextStyle(fontFamily: 'Poppins'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-// =====================================================================
-// Sisa class (CommentsSheet, Comment, _buildPopupCard) TETAP SAMA
-// =====================================================================
-class CommentsSheet extends StatefulWidget {
-  final int feedId;
-  final Widget Function(String, {double radius}) buildAvatar;
-
-  const CommentsSheet({
-    super.key,
-    required this.feedId,
-    required this.buildAvatar,
-  });
-
-  @override
-  State<CommentsSheet> createState() => _CommentsSheetState();
-}
-
-class _CommentsSheetState extends State<CommentsSheet> {
-  final TextEditingController _commentController = TextEditingController();
-
-  final List<Comment> _comments = [
-    Comment(
-      id: 1,
-      username: 'Sarah Wilson',
-      imageUrl: 'https://randomuser.me/api/portraits/women/31.jpg',
-      time: '22 jam',
-      content: 'Vote ulang ga lu 👍😊',
-      likes: 436,
-      replies: [],
-    ),
-    Comment(
-      id: 2,
-      username: 'Mike Brown',
-      imageUrl: 'https://randomuser.me/api/portraits/men/18.jpg',
-      time: '12 jam',
-      content: '🔥🔥🔥🔥',
-      likes: 1,
-      replies: [],
-    ),
-    Comment(
-      id: 3,
-      username: 'Emma Davis',
-      imageUrl: 'https://randomuser.me/api/portraits/women/50.jpg',
-      time: '22 jam',
-      content: '🔥🔥🔥🔥🔥',
-      likes: 1,
-      replies: [],
-    ),
-  ];
-
-  final Map<int, bool> _likedComments = {};
-  int? _replyingToId;
-
-  final String currentUserImageUrl =
-      'https://randomuser.me/api/portraits/women/9.jpg';
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const Text(
-            'Komentar',
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins',
-            ),
-          ),
-          Divider(color: Colors.grey[300]),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _comments.length,
-              itemBuilder: (context, index) {
-                return _buildCommentItem(_comments[index]);
-              },
-            ),
-          ),
-          _buildCommentInput(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCommentItem(Comment comment) {
-    final isLiked = _likedComments[comment.id] ?? false;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              widget.buildAvatar(comment.imageUrl, radius: 18),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          comment.username,
-                          style: const TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          comment.time,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      comment.content,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _replyingToId = comment.id;
-                              _commentController.text = '@${comment.username} ';
-                            });
-                          },
-                          child: Text(
-                            'Balas',
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _likedComments[comment.id] = !isLiked;
-                      });
-                    },
-                    child: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.red : Colors.grey[600],
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    comment.likes.toString(),
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCommentInput() {
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[300]!)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            widget.buildAvatar(currentUserImageUrl, radius: 16),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontFamily: 'Poppins',
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Bergabung dengan percakapan...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[600],
-                    fontFamily: 'Poppins',
-                  ),
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                if (_commentController.text.isNotEmpty) {
-                  // Add comment logic here
-                  _commentController.clear();
-                  setState(() {
-                    _replyingToId = null;
-                  });
-                }
-              },
-              icon: const Icon(Icons.send, color: Color(0xFF3B2C8D)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-}
-
-class Comment {
-  final int id;
-  final String username;
-  final String imageUrl;
-  final String time;
-  final String content;
-  final int likes;
-  final List<Comment> replies;
-
-  Comment({
-    required this.id,
-    required this.username,
-    required this.imageUrl,
-    required this.time,
-    required this.content,
-    required this.likes,
-    required this.replies,
-  });
-}
-
+// --- _buildPopupCard (SAMA) ---
 Widget _buildPopupCard({
   required String step,
   required String title,
@@ -1016,26 +565,22 @@ Widget _buildPopupCard({
   String continueText = "Continue",
 }) {
   return Builder(builder: (context) {
-    // Dapatkan tinggi layar
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Material(
       color: Colors.transparent,
       child: Container(
-        // Padding internal yang lebih kecil
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        // Batasi tinggi popup agar bisa di-scroll jika konten terlalu panjang
         constraints: BoxConstraints(
-          maxWidth: 500, // Lebar maks
-          maxHeight: screenHeight * 0.7, // Maks 70% tinggi layar
+          maxWidth: 500,
+          maxHeight: screenHeight * 0.7,
         ),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
         ),
-        // GANTI Column -> ListView agar bisa scroll jika overflow
         child: ListView(
-          shrinkWrap: true, // Ambil ruang secukupnya
+          shrinkWrap: true,
           children: [
             Text(
               step,
@@ -1067,7 +612,6 @@ Widget _buildPopupCard({
               ),
             ),
             const SizedBox(height: 20),
-            // Tombol tetap menggunakan Wrap
             Wrap(
               alignment: WrapAlignment.end,
               spacing: 8.0,
@@ -1109,4 +653,37 @@ Widget _buildPopupCard({
       ),
     );
   });
+}
+
+// Helper PFP (disalin dari channel_detail.dart agar file ini mandiri)
+Widget _buildChannelPfp(ChannelInfo channel) {
+  if (channel.pfpPath == null || channel.pfpPath!.isEmpty) {
+    return const Icon(Icons.group, size: 35, color: Colors.grey);
+  }
+
+  if (channel.isPfpNetwork) {
+    return Image.network(
+      channel.pfpPath!,
+      fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
+    );
+  } else if (channel.isPfpAsset) {
+    return Image.asset(
+      channel.pfpPath!,
+      fit: BoxFit.cover,
+      errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
+    );
+  } else {
+    return kIsWeb
+        ? Image.network(
+            channel.pfpPath!,
+            fit: BoxFit.cover,
+            errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
+          )
+        : Image.file(
+            File(channel.pfpPath!),
+            fit: BoxFit.cover,
+            errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
+          );
+  }
 }

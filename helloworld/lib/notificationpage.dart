@@ -1,155 +1,142 @@
+// lib/notificationpage.dart (Perbaikan AppBar)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'feed.dart'; // <-- Menggunakan file feed.dart yang sudah direfaktor
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
+
+  @override
+  State<NotificationPage> createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends State<NotificationPage> {
+  // State untuk like/save tetap di halaman ini
+  final Map<int, bool> _likedFeeds = {};
+  final Map<int, bool> _savedFeeds = {};
+
+  // Data mock tetap di halaman ini
+  final List<Map<String, dynamic>> _notificationFeeds = [
+    {
+      'id': 20,
+      'username': 'Jane Smith',
+      'imageUrl': 'https://randomuser.me/api/portraits/women/31.jpg',
+      'channel': 'Harry Potter',
+      'subtitle': 'Harry x Hermoi..',
+      'time': '1h',
+      'content': 'Saya suka sekali dengan cerita ini! 🔥',
+      'comments': 12,
+      'likes': 150,
+      'hasImage': false,
+    },
+    {
+      'id': 21,
+      'username': 'Reading Club',
+      'imageUrl': 'https://randomuser.me/api/portraits/men/18.jpg',
+      'channel': 'Reading Club',
+      'subtitle': 'General',
+      'time': '5h',
+      'content': 'Jangan lupa event mingguan kita malam ini!',
+      'comments': 95,
+      'likes': 1300,
+      'hasImage': true,
+    },
+    {
+      'id': 22,
+      'username': 'Mike Johnson',
+      'imageUrl': 'https://randomuser.me/api/portraits/men/46.jpg',
+      'channel': 'Book Lovers',
+      'subtitle': 'Review',
+      'time': '2d',
+      'content': 'Baru selesai baca buku A, ini review saya...',
+      'comments': 40,
+      'likes': 320,
+      'hasImage': false,
+    }
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1. Set background color
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        // 1. Set appbar color
         backgroundColor: const Color(0xFFF8F9FA),
-        elevation: 1, // Kasih sedikit shadow tipis
+        elevation: 1,
         shadowColor: Colors.grey[200],
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            // 6. Set font family
-            fontFamily: 'Poppins',
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader('Today'),
-              _buildNotificationItem(
-                username: 'Jane Smith',
-                action: 'liked your post.',
-                time: '1h ago',
-                imageUrl:
-                    'assets/post_image_1.png', // Ganti dengan path asset kamu
-              ),
-              _buildNotificationItem(
-                username: 'John Doe',
-                action: 'started following you.',
-                time: '3h ago',
-              ),
-              _buildNotificationItem(
-                username: 'Reading Club',
-                action: 'posted a new story.',
-                time: '5h ago',
-                imageUrl:
-                    'assets/post_image_2.png', // Ganti dengan path asset kamu
-              ),
-              const SizedBox(height: 24),
-              _buildSectionHeader('This Week'),
-              _buildNotificationItem(
-                username: 'Mike Johnson',
-                action: 'commented: "Great insight!"',
-                time: '2d ago',
-              ),
-              _buildNotificationItem(
-                username: 'Sarah Wilson',
-                action: 'liked your comment.',
-                time: '3d ago',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-          fontFamily: 'Poppins',
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationItem({
-    required String username,
-    required String action,
-    required String time,
-    String? imageUrl,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.grey[300],
-            // child: Icon(Icons.person), // Placeholder
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      fontFamily: 'Poppins',
-                    ),
-                    children: [
-                      TextSpan(
-                        text: '$username ',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextSpan(text: action),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontFamily: 'Poppins',
-                  ),
-                ),
-              ],
+        // =======================================================
+        // PERUBAHAN GAYA APPBAR SESUAI PERMINTAAN
+        // =======================================================
+        centerTitle: false, // Membuat title rata kiri
+        titleSpacing: 0, // Menghilangkan spasi default antara leading dan title
+        title: Row(
+          children: [
+            const Text(
+              'Notifications',
+              style: TextStyle(
+                fontSize: 26, // Ukuran font dari homepage.dart
+                fontWeight: FontWeight.bold, // Font weight dari homepage.dart
+                color: Color(0xFF3B2C8D), // Warna dari homepage.dart
+                fontFamily: 'Poppins',
+              ),
             ),
-          ),
-          if (imageUrl != null) ...[
-            const SizedBox(width: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 50,
-                height: 50,
-                color: Colors.grey[200],
-                // child: Image.asset(imageUrl, fit: BoxFit.cover), // Aktifkan jika punya asset
-                child: Icon(Icons.image_outlined, color: Colors.grey[400]),
-              ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.notifications_outlined, // Ikon yang relevan
+              color: Color(0xFF3B2C8D), // Warna yang sama
+              size: 28, // Ukuran yang sama
             ),
           ],
-        ],
+        ),
+        // =======================================================
+        // AKHIR PERUBAHAN
+        // =======================================================
+      ),
+      body: ListView.builder(
+        itemCount: _notificationFeeds.length,
+        itemBuilder: (context, index) {
+          final feed = _notificationFeeds[index];
+          final int id = feed['id'] as int;
+          final bool isLiked = _likedFeeds[id] ?? false;
+          final bool isSaved = _savedFeeds[id] ?? false;
+
+          // Panggil widget FeedItem dari feed.dart
+          return FeedItem(
+            id: id,
+            username: feed['username'] as String,
+            imageUrl: feed['imageUrl'] as String,
+            channel: feed['channel'] as String,
+            subtitle: feed['subtitle'] as String,
+            time: feed['time'] as String,
+            content: feed['content'] as String,
+            comments: feed['comments'] as int,
+            likes: feed['likes'] as int,
+            hasImage: feed['hasImage'] as bool,
+
+            // Teruskan state
+            isLiked: isLiked,
+            isSaved: isSaved,
+
+            // Teruskan fungsi buildAvatar global dari feed.dart
+            avatarBuilder: buildAvatar,
+
+            // Buat callback untuk mengubah state
+            onLike: () {
+              setState(() {
+                _likedFeeds[id] = !isLiked;
+              });
+            },
+            onSave: () {
+              setState(() {
+                _savedFeeds[id] = !isSaved;
+              });
+            },
+          );
+        },
       ),
     );
   }
