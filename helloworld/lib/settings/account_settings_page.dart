@@ -1,19 +1,70 @@
 //lib/settings/account_settings_page.dart
 import 'package:flutter/material.dart';
+import '../api_service.dart';
 import 'change_password_page.dart';
 import 'change_username_page.dart';
-import 'change_phone_page.dart';
 import 'change_email_page.dart';
 import '../edit_profile_page.dart';
 
-class AccountSettingsPage extends StatelessWidget {
+class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
 
+  @override
+  State<AccountSettingsPage> createState() => _AccountSettingsPageState();
+}
+
+class _AccountSettingsPageState extends State<AccountSettingsPage> {
   static const Color primaryPurple = Color(0xFF5B4AE2);
   static const Color darkPurple = Color(0xFF3B2C8D);
 
+  bool _loading = true;
+  String _username = '';
+  String _displayName = '';
+  String _email = '';
+  String _phone = '';
+  String _about = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _loading = true);
+    try {
+      final data = await ApiService().getProfile();
+      setState(() {
+        _username = data['username'] ?? '';
+        String firstName = data['first_name'] ?? '';
+        if (firstName.trim().isEmpty) {
+          _displayName = _username;
+        } else {
+          _displayName = firstName;
+        }
+        _email = data['email'] ?? '';
+        _phone = data['phone'] ?? '';
+        _about = data['about'] ?? '';
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load profile: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -34,7 +85,8 @@ class AccountSettingsPage extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 24),
                   ),
                   const SizedBox(width: 8),
                   const Text(
@@ -52,179 +104,66 @@ class AccountSettingsPage extends StatelessWidget {
             // ===== BODY =====
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                 children: [
                   // Account Information
                   _sectionTitle('Account Information'),
                   const SizedBox(height: 8),
                   _groupCard(
                     children: [
-                      InkWell(
+                      _buildRow(
+                        label: 'Username',
+                        value: _username,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ChangeUsernamePage(currentUsername: 'sam3214540'),
+                              builder: (context) => ChangeUsernamePage(
+                                  currentUsername: _username),
                             ),
-                          );
+                          ).then((_) => _loadProfile());
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Username',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2D2D2D),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    'sam3214540',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                       _divider(),
-                      InkWell(
+                      _buildRow(
+                        label: 'Display Name',
+                        value: _displayName,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const EditProfilePage(
-                                initialName: 'Sam',
-                                initialUsername: '@sam3214540',
-                                initialAbout: 'I like to play',
+                              builder: (context) => EditProfilePage(
+                                initialName: _displayName,
+                                initialUsername: '@$_username',
+                                initialAbout: _about,
                               ),
                             ),
-                          );
+                          ).then((_) => _loadProfile());
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Display Name',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2D2D2D),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    'Sam',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                       _divider(),
-                      InkWell(
+                      _buildRow(
+                        label: 'Email',
+                        value: _email,
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ChangeEmailPage(currentEmail: 'hubertus.samuel.jethro@gmail.com'),
+                              builder: (context) =>
+                                  ChangeEmailPage(currentEmail: _email),
                             ),
-                          );
+                          ).then((_) => _loadProfile());
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Email',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2D2D2D),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    'hubertus.samuel.jethro@gmail.com',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                       _divider(),
-                      InkWell(
+                      _buildRow(
+                        label: 'Phone',
+                        value: _phone.isEmpty ? 'Tap to add phone' : _phone,
+                        valueColor: _phone.isEmpty ? Colors.blue : null,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ChangePhonePage(currentPhone: '+6281298881918'),
-                            ),
-                          );
+                          _showPhoneDialog();
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Phone',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF2D2D2D),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    '+6281298881918',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -236,23 +175,17 @@ class AccountSettingsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _groupCard(
                     children: [
-                      InkWell(
+                      _buildRow(
+                        label: 'Password',
+                        value: '',
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const ChangePasswordPage()),
                           );
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Password', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF2D2D2D))),
-                              const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -264,27 +197,19 @@ class AccountSettingsPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _groupCard(
                     children: [
-                      _compactRow(context, 'Disable Account', '', valueColor: Colors.red),
+                      _buildRow(
+                          label: 'Disable Account',
+                          value: '',
+                          valueColor: Colors.red,
+                          onTap: () {}),
                       _divider(),
-                      InkWell(
+                      _buildRow(
+                        label: 'Delete Account',
+                        value: '',
+                        valueColor: Colors.red,
+                        icon: Icons.delete_outline,
+                        iconColor: Colors.red,
                         onTap: () => _confirmDelete(context),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Text(
-                                'Delete Account',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.red,
-                                ),
-                              ),
-                              Icon(Icons.delete_outline, color: Colors.red),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -297,6 +222,55 @@ class AccountSettingsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showPhoneDialog() {
+    final TextEditingController phoneCtrl = TextEditingController(text: _phone);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Phone'),
+        content: TextField(
+          controller: phoneCtrl,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(hintText: 'Enter phone number'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _updatePhone(phoneCtrl.text);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updatePhone(String newPhone) async {
+    setState(() => _loading = true);
+    try {
+      await ApiService().updateProfile(phone: newPhone);
+      await _loadProfile();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phone number updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update phone: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   // ===== COMPONENTS =====
@@ -332,14 +306,16 @@ class AccountSettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _compactRow(
-    BuildContext context,
-    String label,
-    String value, {
+  Widget _buildRow({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
     Color? valueColor,
+    IconData? icon,
+    Color? iconColor,
   }) {
     return InkWell(
-      onTap: () => _openPlaceholder(context, label),
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -347,10 +323,10 @@ class AccountSettingsPage extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF2D2D2D),
+                color: iconColor ?? const Color(0xFF2D2D2D),
               ),
             ),
             Row(
@@ -365,7 +341,8 @@ class AccountSettingsPage extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+                Icon(icon ?? Icons.chevron_right,
+                    color: iconColor ?? Colors.grey, size: 22),
               ],
             ),
           ],
@@ -375,11 +352,6 @@ class AccountSettingsPage extends StatelessWidget {
   }
 
   Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
-
-  void _openPlaceholder(BuildContext context, String label) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$label tapped')));
-  }
 
   void _confirmDelete(BuildContext context) {
     showDialog(
@@ -391,7 +363,9 @@ class AccountSettingsPage extends StatelessWidget {
             'Are you sure you want to permanently delete your account? This cannot be undone.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);

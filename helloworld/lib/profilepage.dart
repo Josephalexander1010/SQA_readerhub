@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'api_service.dart';
 import 'edit_profile_page.dart';
 import 'settings/settings_page.dart';
 
@@ -34,12 +34,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
-    final prefs = await SharedPreferences.getInstance();
-    _name = prefs.getString(_kNameKey) ?? _name;
-    _username = prefs.getString(_kUsernameKey) ?? _username;
-    _about = prefs.getString(_kAboutKey) ?? _about;
-    _avatarUrl = prefs.getString(_kAvatarKey);
-    setState(() => _loading = false);
+    try {
+      final data = await ApiService().getProfile();
+      setState(() {
+        _name = data['username'] ?? 'User';
+        _username = '@${data['username']}';
+        _about = 'Reader-HUB User';
+        if (data['profile_picture'] != null) {
+          _avatarUrl = data['profile_picture'];
+          if (!_avatarUrl!.startsWith('http')) {
+            _avatarUrl =
+                '${ApiService.baseUrl.replaceAll("/api", "")}$_avatarUrl';
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _saveProfile({
@@ -76,18 +89,42 @@ class _ProfilePageState extends State<ProfilePage> {
       final newUsername = result['username'] ?? _username;
       final newAbout = result['about'] ?? _about;
 
-      setState(() {
-        _name = newName;
-        _username = newUsername;
-        _about = newAbout;
-      });
+      // Strip '@' from username before sending to API
+      final apiUsername =
+          newUsername.startsWith('@') ? newUsername.substring(1) : newUsername;
 
-      await _saveProfile(
-        name: newName,
-        username: newUsername,
-        about: newAbout,
-        avatarUrl: _avatarUrl,
-      );
+      try {
+        await ApiService().updateProfile(
+          name: newName,
+          username: apiUsername,
+          about: newAbout,
+        );
+
+        setState(() {
+          _name = newName;
+          _username = newUsername;
+          _about = newAbout;
+        });
+
+        await _saveProfile(
+          name: newName,
+          username: newUsername,
+          about: newAbout,
+          avatarUrl: _avatarUrl,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update profile: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -122,7 +159,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -222,8 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
                           ),
                           child: const Text(

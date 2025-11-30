@@ -9,6 +9,7 @@ import 'channel_detail.dart';
 import 'feed.dart';
 import 'createfeed.dart';
 import 'models.dart';
+import 'api_service.dart';
 
 class HomePage extends StatefulWidget {
   final GlobalKey fabKey;
@@ -397,42 +398,51 @@ class HomePageState extends State<HomePage> {
 
   // --- PERBAIKAN DI SINI ---
   // Direvisi total untuk menggunakan Row + Expanded
+
   Widget _buildMyChannelsSection() {
-    // Tentukan ukuran lingkaran yang lebih kecil
-    const double itemSize = 60.0;
+    return FutureBuilder<List<ChannelInfo>>(
+      future: ApiService().getChannels(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No channels found'));
+        }
 
-    // Buat list 4 channel, isi dengan null jika kosong
-    List<ChannelInfo?> channelsToShow = List.from(widget.lastVisitedChannels);
-    while (channelsToShow.length < 4) {
-      channelsToShow.add(null);
-    }
+        final channels = snapshot.data!;
+        const double itemSize = 60.0;
 
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      child: SizedBox(
-        height: itemSize + 30, // Ukuran lingkaran + teks
-        child: Row(
-          // <-- Ganti ListView ke Row
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Tampilkan 4 channel (atau placeholder)
-            // Bungkus masing-masing dengan Expanded agar ruang terbagi rata
-            ...channelsToShow.map(
-              (channel) => Expanded(
-                child: channel != null
-                    ? _buildChannelCircle(channel, itemSize)
-                    : Container(), // Placeholder kosong
-              ),
+        // Take first 4 channels
+        List<ChannelInfo?> channelsToShow = List.from(channels.take(4));
+        while (channelsToShow.length < 4) {
+          channelsToShow.add(null);
+        }
+
+        return Container(
+          color: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          child: SizedBox(
+            height: itemSize + 30,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ...channelsToShow.map(
+                  (channel) => Expanded(
+                    child: channel != null
+                        ? _buildChannelCircle(channel, itemSize)
+                        : Container(),
+                  ),
+                ),
+                Expanded(
+                  child: _buildLoadMoreCircle(itemSize),
+                ),
+              ],
             ),
-
-            // Selalu tampilkan "Load More" sebagai item ke-5
-            Expanded(
-              child: _buildLoadMoreCircle(itemSize),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

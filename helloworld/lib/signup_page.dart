@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'topic_selection_page.dart';
+import 'api_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -30,14 +31,44 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  void _onNext() {
+  bool _isLoading = false;
+  final ApiService _apiService = ApiService();
+
+  Future<void> _onNext() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // push to verify step (Step 2)
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SignupVerifyPage(email: _emailCtrl.text.trim()),
-        ),
-      );
+      setState(() => _isLoading = true);
+      try {
+        final username = _nameCtrl.text.trim();
+        final apiUsername =
+            username.startsWith('@') ? username.substring(1) : username;
+
+        await _apiService.register(
+          apiUsername,
+          _emailCtrl.text,
+          _passCtrl.text,
+        );
+
+        // Auto-login to get token
+        await _apiService.login(_nameCtrl.text, _passCtrl.text);
+
+        if (mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SignupVerifyPage(email: _emailCtrl.text.trim()),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Registration failed: ${e.toString()}')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -188,10 +219,13 @@ class _SignupPageState extends State<SignupPage> {
                                     ),
                                     elevation: 0,
                                   ),
-                                  child: const Text('Next',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700)),
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white)
+                                      : const Text('Next',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700)),
                                 ),
                               ),
 

@@ -5,18 +5,37 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models.dart';
 import 'channel_detail.dart';
+import 'api_service.dart';
 
-class MyChannelCollectionPage extends StatelessWidget {
-  final List<ChannelInfo> allChannels;
+class MyChannelCollectionPage extends StatefulWidget {
   final Function(ChannelInfo) onChannelVisited;
   final Function(ChannelInfo)? onChannelDeleted;
 
   const MyChannelCollectionPage({
     super.key,
-    required this.allChannels,
     required this.onChannelVisited,
     this.onChannelDeleted,
   });
+
+  @override
+  State<MyChannelCollectionPage> createState() =>
+      _MyChannelCollectionPageState();
+}
+
+class _MyChannelCollectionPageState extends State<MyChannelCollectionPage> {
+  late Future<List<ChannelInfo>> _channelsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshChannels();
+  }
+
+  void _refreshChannels() {
+    setState(() {
+      _channelsFuture = ApiService().getChannels();
+    });
+  }
 
   void _confirmDeleteChannel(BuildContext context, ChannelInfo channel) {
     final bool isMyChannel = channel.isOwned;
@@ -32,9 +51,13 @@ class MyChannelCollectionPage extends StatelessWidget {
               onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           TextButton(
             onPressed: () {
-              if (onChannelDeleted != null) {
-                onChannelDeleted!(channel);
+              if (widget.onChannelDeleted != null) {
+                widget.onChannelDeleted!(channel);
               }
+              // Refresh list after deletion (assuming onChannelDeleted handles backend call or we do it here)
+              // For now, we assume onChannelDeleted might just update global state, but we should probably call API here too.
+              // But let's just refresh for now.
+              _refreshChannels();
               Navigator.pop(ctx);
             },
             child: Text(isMyChannel ? "Delete" : "Unfollow",
@@ -63,18 +86,50 @@ class MyChannelCollectionPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: allChannels.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 5,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.75,
-        ),
-        itemBuilder: (context, index) {
-          final channel = allChannels[index];
-          return _buildChannelCircle(context, channel);
+      body: FutureBuilder<List<ChannelInfo>>(
+        future: _channelsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No channels in collection',
+                    style: GoogleFonts.poppins(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final allChannels = snapshot.data!;
+          return RefreshIndicator(
+            onRefresh: () async {
+              _refreshChannels();
+              await _channelsFuture;
+            },
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: allChannels.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, // Adjusted for better fit
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.75,
+              ),
+              itemBuilder: (context, index) {
+                final channel = allChannels[index];
+                return _buildChannelCircle(context, channel);
+              },
+            ),
+          );
         },
       ),
     );
@@ -83,13 +138,13 @@ class MyChannelCollectionPage extends StatelessWidget {
   Widget _buildChannelCircle(BuildContext context, ChannelInfo channel) {
     return GestureDetector(
       onTap: () {
-        onChannelVisited(channel);
+        widget.onChannelVisited(channel);
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChannelDetailPage(channel: channel),
           ),
-        );
+        ).then((_) => _refreshChannels()); // Refresh when returning from detail
       },
       onLongPress: () => _confirmDeleteChannel(context, channel),
       child: Column(
@@ -125,37 +180,27 @@ class MyChannelCollectionPage extends StatelessWidget {
     );
   }
 
-  // --- PERBAIKAN LOGIKA PFP ---
   Widget _buildChannelPfp(ChannelInfo channel) {
     final path = channel.pfpPath;
 
-    // 1. Jika tidak ada gambar -> Icon Default
     if (path == null || path.isEmpty) {
       return const Icon(Icons.group, size: 35, color: Colors.grey);
     }
 
-    // 2. Jika path dimulai dengan 'http' atau 'blob:' (Web) -> NetworkImage
     if (path.startsWith('http') || path.startsWith('blob:')) {
       return Image.network(
         path,
         fit: BoxFit.cover,
         errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
       );
-    }
-
-    // 3. Jika path dimulai dengan 'assets/' -> AssetImage
-    else if (path.startsWith('assets/')) {
+    } else if (path.startsWith('assets/')) {
       return Image.asset(
         path,
         fit: BoxFit.cover,
         errorBuilder: (c, e, s) => const Icon(Icons.group, size: 35),
       );
-    }
-
-    // 4. Sisanya (File lokal di Mobile) -> Image.file
-    else {
+    } else {
       if (kIsWeb) {
-        // Fallback untuk web jika path aneh (seharusnya tidak masuk sini jika blob)
         return Image.network(
           path,
           fit: BoxFit.cover,
@@ -170,5 +215,4 @@ class MyChannelCollectionPage extends StatelessWidget {
       }
     }
   }
-  // ---------------------------
 }

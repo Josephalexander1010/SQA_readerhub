@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'signup_page.dart';
 import 'navbar.dart';
-import 'forgot_password.dart'; // ensure this file exists (ForgotEmailPage)
+import 'forgot_password.dart';
+import 'api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,11 +28,33 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _trySignIn() {
+  bool _isLoading = false;
+  final ApiService _apiService = ApiService();
+
+  Future<void> _trySignIn() async {
     if (_formKey.currentState?.validate() ?? false) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const NavBar()),
-      );
+      setState(() => _isLoading = true);
+      try {
+        final username = _emailCtrl.text.trim();
+        final apiUsername =
+            username.startsWith('@') ? username.substring(1) : username;
+        await _apiService.login(apiUsername, _passCtrl.text);
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const NavBar()),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: ${e.toString()}')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -89,11 +112,11 @@ class _LoginPageState extends State<LoginPage> {
                             children: [
                               _buildInputField(
                                 controller: _emailCtrl,
-                                hintText: 'Enter email or username',
-                                prefix: Icons.mail_outline,
+                                hintText: 'Enter Username',
+                                prefix: Icons.person_outline,
                                 validator: (v) {
                                   if (v == null || v.trim().isEmpty) {
-                                    return 'Please enter email or username';
+                                    return 'Please enter username';
                                   }
                                   return null;
                                 },
@@ -205,15 +228,18 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               elevation: 0,
                             ),
-                            child: const Text(
-                              'Sign In',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : const Text(
+                                    'Sign In',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
                           ),
                         ),
 

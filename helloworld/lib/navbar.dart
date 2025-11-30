@@ -9,7 +9,6 @@ import 'my_channel_collection.dart';
 import 'profilepage.dart';
 import 'createfeed.dart';
 import 'createchannel.dart';
-import 'channel_detail.dart';
 
 class NavBar extends StatefulWidget {
   const NavBar({super.key});
@@ -73,31 +72,27 @@ class _NavBarState extends State<NavBar> {
       MaterialPageRoute(builder: (context) => const CreateChannelPage()),
     );
 
-    if (result != null && result is Map<String, dynamic>) {
-      // Konversi data Map dari CreateChannelPage ke model ChannelInfo
-      final newChannel = ChannelInfo(
-        id: result['id'],
-        name: result['name'],
-        description: result['description'],
-        pfpPath: result['avatar'],
-        isPfpAsset: result['isAsset'],
-        isPfpNetwork: result['isNetwork'],
-        subChannels: (result['subChannels'] as List<dynamic>)
-            .map((sub) => SubChannelInfo(name: sub['name']))
-            .toList(),
-        isOwned: true, // Channel baru pasti milik user
-        isFollowing: true,
-      );
-
+    if (result == true) {
+      // Refresh daftar channel dari API
       setState(() {
-        // Tambah ke list global
-        gAllChannels.insert(0, newChannel);
-        // Tandai sebagai dikunjungi
-        _handleChannelVisited(newChannel);
+        // Kita bisa memicu reload di MyChannelCollectionPage jika menggunakan FutureBuilder
+        // atau kita bisa memuat ulang data global di sini jika kita ingin cache-nya update
+        // Untuk saat ini, kita biarkan MyChannelCollectionPage memuat ulang sendiri karena dia pakai FutureBuilder
+        // Tapi kita perlu update gLastVisitedChannels jika kita ingin channel baru muncul di sana
+        // Namun karena API create tidak mengembalikan objek channel lengkap, kita mungkin perlu fetch ulang
+        // atau biarkan user menemukannya di list.
+
+        // Opsi terbaik: Pindah ke tab Collection dan biarkan ia refresh
       });
 
-      // Pindah ke tab MyChannelCollectionPage (index 2)
       _onItemTapped(2);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Channel created! Pull to refresh collection.")),
+        );
+      }
     }
   }
 
@@ -141,7 +136,6 @@ class _NavBarState extends State<NavBar> {
       ),
       const SearchPage(),
       MyChannelCollectionPage(
-        allChannels: gAllChannels, // Data terbaru
         onChannelVisited: _handleChannelVisited,
         onChannelDeleted:
             _handleDeleteChannel, // <-- Fungsi delete diteruskan ke sini

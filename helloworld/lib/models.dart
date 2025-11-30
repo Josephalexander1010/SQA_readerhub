@@ -1,22 +1,25 @@
+
 // lib/models.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-// --- PERBAIKAN DI SINI ---
-// 1. Hapus 'const'
-// 2. Tambahkan List<SubChannelPost> posts
 class SubChannelInfo {
   final String name;
-  final List<SubChannelPost> posts; // Tempat simpan post
+  final List<SubChannelPost> posts;
 
   SubChannelInfo({
     required this.name,
-    List<SubChannelPost>? posts, // Opsional di constructor
-  }) : posts = posts ?? []; // Default ke list kosong jika null
-}
-// -------------------------
+    List<SubChannelPost>? posts,
+  }) : posts = posts ?? [];
 
-// Model untuk Channel
+  factory SubChannelInfo.fromJson(Map<String, dynamic> json) {
+    return SubChannelInfo(
+      name: json['name'],
+      // Posts will be loaded separately or can be nested if backend supports it
+    );
+  }
+}
+
 class ChannelInfo {
   final String id;
   final String name;
@@ -40,9 +43,25 @@ class ChannelInfo {
     this.isOwned = true,
     this.isFollowing = true,
   });
+
+  factory ChannelInfo.fromJson(Map<String, dynamic> json) {
+    var subChannelsList = json['sub_channels'] as List;
+    List<SubChannelInfo> subChannels = subChannelsList.map((i) => SubChannelInfo.fromJson(i)).toList();
+
+    return ChannelInfo(
+      id: json['id'].toString(),
+      name: json['name'],
+      description: json['description'],
+      pfpPath: json['avatar'], // Backend returns 'avatar' URL
+      isPfpNetwork: json['avatar'] != null,
+      isPfpAsset: false,
+      subChannels: subChannels,
+      isOwned: json['is_owned'] ?? false,
+      isFollowing: json['is_following'] ?? false,
+    );
+  }
 }
 
-// Model data untuk Postingan di Sub-Channel
 class SubChannelPost {
   final String authorName;
   final String avatarUrl;
@@ -78,26 +97,25 @@ class SubChannelPost {
     this.commentsEnabled = true,
     this.savesEnabled = true,
   });
+
+  factory SubChannelPost.fromJson(Map<String, dynamic> json) {
+    return SubChannelPost(
+      id: json['id'],
+      authorName: json['author']['username'],
+      avatarUrl: json['author']['profile_picture'] ?? '', // Handle null
+      channel: json['channel_name'],
+      subChannel: json['sub_channel_name'],
+      timeAgo: 'Just now', // Calculate based on created_at
+      message: json['content'],
+      hasImage: json['media_type'] == 'image',
+      mediaPath: json['media'],
+      isMediaNetwork: true,
+      likes: json['likes_count'],
+      liked: json['liked'],
+    );
+  }
 }
 
-// --- Data Channel Awal ---
-List<ChannelInfo> gAllChannels = [
-  ChannelInfo(
-    id: 'reader_hub',
-    name: 'Reader-HUB',
-    description:
-        'Welcome to Reader-HUB! 🪄 This is the central channel for app announcements, updates, and general community discussions. Get started here!',
-    pfpPath: 'assets/images/logo_reader_hub.png',
-    isPfpAsset: true,
-    isPfpNetwork: false,
-    subChannels: [
-      // Hapus const di sini
-      SubChannelInfo(name: 'General'),
-      SubChannelInfo(name: 'Announcements'),
-    ],
-    isOwned: false,
-    isFollowing: true,
-  ),
-];
+List<ChannelInfo> gAllChannels = []; // Empty default, will load from API
 
 List<ChannelInfo> gLastVisitedChannels = [];

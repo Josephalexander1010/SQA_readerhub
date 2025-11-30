@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'api_service.dart';
 
 class CreateChannelPage extends StatefulWidget {
   const CreateChannelPage({super.key});
@@ -56,25 +57,38 @@ class _CreateChannelPageState extends State<CreateChannelPage> {
     }
   }
 
-  void _createChannel() {
+  Future<void> _createChannel() async {
     if (!_isButtonEnabled) return;
 
-    final newChannelData = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'name': '[M]${_nameController.text}',
-      'description': _descriptionController.text,
-      'avatar': _pickedFile?.path,
-      'isAsset': false,
-      'isNetwork': kIsWeb,
-      // --- PERBAIKAN DI SINI: HAPUS 'const' ---
-      'subChannels': [
-        {'name': 'General'},
-        {'name': 'Announcements'},
-      ],
-      // ----------------------------------------
-    };
+    setState(() {
+      _isButtonEnabled = false; // Disable button while loading
+    });
 
-    Navigator.pop(context, newChannelData);
+    try {
+      // Panggil API untuk create channel
+      await ApiService().createChannel(
+        _nameController.text,
+        _descriptionController.text,
+        _pickedFile != null ? File(_pickedFile!.path) : null,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Channel created successfully!')),
+        );
+        // Kembali ke layar sebelumnya dengan indikator sukses
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create channel: $e')),
+        );
+        setState(() {
+          _isButtonEnabled = true; // Re-enable button on failure
+        });
+      }
+    }
   }
 
   @override
